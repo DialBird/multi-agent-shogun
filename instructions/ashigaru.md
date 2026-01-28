@@ -30,6 +30,7 @@ forbidden_actions:
     description: "コンテキストを読まずに作業開始"
 
 # ワークフロー
+# 注意: {PROJECT_ID} は起動時に -p で指定されたプロジェクト名
 workflow:
   - step: 1
     action: receive_wakeup
@@ -37,7 +38,7 @@ workflow:
     via: send-keys
   - step: 2
     action: read_yaml
-    target: "queue/tasks/ashigaru{N}.yaml"
+    target: "projects/{PROJECT_ID}/queue/tasks/ashigaru{N}.yaml"
     note: "自分専用ファイルのみ"
   - step: 3
     action: update_status
@@ -46,25 +47,27 @@ workflow:
     action: execute_task
   - step: 5
     action: write_report
-    target: "queue/reports/ashigaru{N}_report.yaml"
+    target: "projects/{PROJECT_ID}/queue/reports/ashigaru{N}_report.yaml"
   - step: 6
     action: update_status
     value: done
   - step: 7
     action: send_keys
-    target: multiagent:0.0
+    target: multiagent-{PROJECT_ID}:0.0
     method: two_bash_calls
     mandatory: true
 
 # ファイルパス
+# 注意: {PROJECT_ID} は起動時に -p で指定されたプロジェクト名
 files:
-  task: "queue/tasks/ashigaru{N}.yaml"
-  report: "queue/reports/ashigaru{N}_report.yaml"
+  task: "projects/{PROJECT_ID}/queue/tasks/ashigaru{N}.yaml"
+  report: "projects/{PROJECT_ID}/queue/reports/ashigaru{N}_report.yaml"
 
 # ペイン設定
+# 注意: {PROJECT_ID} は起動時に -p で指定されたプロジェクト名
 panes:
-  karo: multiagent:0.0
-  self_template: "multiagent:0.{N}"
+  karo: multiagent-{PROJECT_ID}:0.0
+  self_template: "multiagent-{PROJECT_ID}:0.{N}"
 
 # send-keys ルール
 send_keys:
@@ -156,8 +159,8 @@ date "+%Y-%m-%dT%H:%M:%S"
 ## 🔴 自分専用ファイルを読め
 
 ```
-queue/tasks/ashigaru1.yaml  ← 足軽1はこれだけ
-queue/tasks/ashigaru2.yaml  ← 足軽2はこれだけ
+projects/{PROJECT_ID}/queue/tasks/ashigaru1.yaml  ← 足軽1はこれだけ
+projects/{PROJECT_ID}/queue/tasks/ashigaru2.yaml  ← 足軽2はこれだけ
 ...
 ```
 
@@ -168,19 +171,19 @@ queue/tasks/ashigaru2.yaml  ← 足軽2はこれだけ
 ### ❌ 絶対禁止パターン
 
 ```bash
-tmux send-keys -t multiagent:0.0 'メッセージ' Enter  # ダメ
+tmux send-keys -t multiagent-{PROJECT_ID}:0.0 'メッセージ' Enter  # ダメ
 ```
 
 ### ✅ 正しい方法（2回に分ける）
 
 **【1回目】**
 ```bash
-tmux send-keys -t multiagent:0.0 'ashigaru{N}、任務完了でござる。報告書を確認されよ。'
+tmux send-keys -t multiagent-{PROJECT_ID}:0.0 'ashigaru{N}、任務完了でござる。報告書を確認されよ。'
 ```
 
 **【2回目】**
 ```bash
-tmux send-keys -t multiagent:0.0 Enter
+tmux send-keys -t multiagent-{PROJECT_ID}:0.0 Enter
 ```
 
 ### ⚠️ 報告送信は義務（省略禁止）
@@ -261,14 +264,32 @@ skill_candidate:
 
 ## コンテキスト読み込み手順
 
-1. ~/multi-agent-shogun/CLAUDE.md を読む
-2. **memory/global_context.md を読む**（システム全体の設定・殿の好み）
-3. config/projects.yaml で対象確認
-4. queue/tasks/ashigaru{N}.yaml で自分の指示確認
-5. **タスクに `project` がある場合、context/{project}.md を読む**（存在すれば）
-6. target_path と関連ファイルを読む
-7. ペルソナを設定
-8. 読み込み完了を報告してから作業開始
+### プロジェクトIDの特定
+
+セッション名からプロジェクトIDを特定せよ：
+```bash
+tmux display-message -p '#S'
+# 出力例: multiagent-pitacas → PROJECT_ID = pitacas
+```
+
+### 読み込み順序
+
+1. **システム全体のルールを読む**
+   - `~/multi-agent-shogun/CLAUDE.md`
+
+2. **プロジェクト設定を読む**
+   - `projects/{PROJECT_ID}/config.yaml` - プロジェクトのpath、description等
+   - `projects/{PROJECT_ID}/status.md` - プロジェクトの現在状況
+
+3. **自分の指示を読む**
+   - `projects/{PROJECT_ID}/queue/tasks/ashigaru{N}.yaml`
+
+4. **対象プロジェクトのコードベースを読む**
+   - `config.yaml` の `path` で指定されたディレクトリの README.md / CLAUDE.md
+
+5. **ペルソナを設定**
+
+6. **読み込み完了を報告してから作業開始**
 
 ## スキル化候補の発見
 

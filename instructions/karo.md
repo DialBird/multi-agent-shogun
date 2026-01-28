@@ -31,6 +31,7 @@ forbidden_actions:
     description: "コンテキストを読まずにタスク分解"
 
 # ワークフロー
+# 注意: {PROJECT_ID} は起動時に -p で指定されたプロジェクト名
 workflow:
   # === タスク受領フェーズ ===
   - step: 1
@@ -39,21 +40,21 @@ workflow:
     via: send-keys
   - step: 2
     action: read_yaml
-    target: queue/shogun_to_karo.yaml
+    target: projects/{PROJECT_ID}/queue/shogun_to_karo.yaml
   - step: 3
     action: update_dashboard
-    target: dashboard.md
+    target: projects/{PROJECT_ID}/dashboard.md
     section: "進行中"
     note: "タスク受領時に「進行中」セクションを更新"
   - step: 4
     action: decompose_tasks
   - step: 5
     action: write_yaml
-    target: "queue/tasks/ashigaru{N}.yaml"
+    target: "projects/{PROJECT_ID}/queue/tasks/ashigaru{N}.yaml"
     note: "各足軽専用ファイル"
   - step: 6
     action: send_keys
-    target: "multiagent:0.{N}"
+    target: "multiagent-{PROJECT_ID}:0.{N}"
     method: two_bash_calls
   - step: 7
     action: stop
@@ -65,34 +66,37 @@ workflow:
     via: send-keys
   - step: 9
     action: scan_reports
-    target: "queue/reports/ashigaru*_report.yaml"
+    target: "projects/{PROJECT_ID}/queue/reports/ashigaru*_report.yaml"
   - step: 10
     action: update_dashboard
-    target: dashboard.md
+    target: projects/{PROJECT_ID}/dashboard.md
     section: "戦果"
     note: "完了報告受信時に「戦果」セクションを更新。将軍へのsend-keysは行わない"
 
 # ファイルパス
+# 注意: {PROJECT_ID} は起動時に -p で指定されたプロジェクト名
 files:
-  input: queue/shogun_to_karo.yaml
-  task_template: "queue/tasks/ashigaru{N}.yaml"
-  report_pattern: "queue/reports/ashigaru{N}_report.yaml"
-  status: status/master_status.yaml
-  dashboard: dashboard.md
+  project_config: projects/{PROJECT_ID}/config.yaml
+  project_status: projects/{PROJECT_ID}/status.md
+  input: projects/{PROJECT_ID}/queue/shogun_to_karo.yaml
+  task_template: "projects/{PROJECT_ID}/queue/tasks/ashigaru{N}.yaml"
+  report_pattern: "projects/{PROJECT_ID}/queue/reports/ashigaru{N}_report.yaml"
+  dashboard: projects/{PROJECT_ID}/dashboard.md
 
 # ペイン設定
+# 注意: {PROJECT_ID} は起動時に -p で指定されたプロジェクト名
 panes:
-  shogun: shogun
-  self: multiagent:0.0
+  shogun: shogun-{PROJECT_ID}
+  self: multiagent-{PROJECT_ID}:0.0
   ashigaru:
-    - { id: 1, pane: "multiagent:0.1" }
-    - { id: 2, pane: "multiagent:0.2" }
-    - { id: 3, pane: "multiagent:0.3" }
-    - { id: 4, pane: "multiagent:0.4" }
-    - { id: 5, pane: "multiagent:0.5" }
-    - { id: 6, pane: "multiagent:0.6" }
-    - { id: 7, pane: "multiagent:0.7" }
-    - { id: 8, pane: "multiagent:0.8" }
+    - { id: 1, pane: "multiagent-{PROJECT_ID}:0.1" }
+    - { id: 2, pane: "multiagent-{PROJECT_ID}:0.2" }
+    - { id: 3, pane: "multiagent-{PROJECT_ID}:0.3" }
+    - { id: 4, pane: "multiagent-{PROJECT_ID}:0.4" }
+    - { id: 5, pane: "multiagent-{PROJECT_ID}:0.5" }
+    - { id: 6, pane: "multiagent-{PROJECT_ID}:0.6" }
+    - { id: 7, pane: "multiagent-{PROJECT_ID}:0.7" }
+    - { id: 8, pane: "multiagent-{PROJECT_ID}:0.8" }
 
 # send-keys ルール
 send_keys:
@@ -104,7 +108,7 @@ send_keys:
 # 足軽の状態確認ルール
 ashigaru_status_check:
   method: tmux_capture_pane
-  command: "tmux capture-pane -t multiagent:0.{N} -p | tail -20"
+  command: "tmux capture-pane -t multiagent-{PROJECT_ID}:0.{N} -p | tail -20"
   busy_indicators:
     - "thinking"
     - "Esc to interrupt"
@@ -183,19 +187,19 @@ date "+%Y-%m-%dT%H:%M:%S"
 ### ❌ 絶対禁止パターン
 
 ```bash
-tmux send-keys -t multiagent:0.1 'メッセージ' Enter  # ダメ
+tmux send-keys -t multiagent-{PROJECT_ID}:0.1 'メッセージ' Enter  # ダメ
 ```
 
 ### ✅ 正しい方法（2回に分ける）
 
 **【1回目】**
 ```bash
-tmux send-keys -t multiagent:0.{N} 'queue/tasks/ashigaru{N}.yaml に任務がある。確認して実行せよ。'
+tmux send-keys -t multiagent-{PROJECT_ID}:0.{N} 'projects/{PROJECT_ID}/queue/tasks/ashigaru{N}.yaml に任務がある。確認して実行せよ。'
 ```
 
 **【2回目】**
 ```bash
-tmux send-keys -t multiagent:0.{N} Enter
+tmux send-keys -t multiagent-{PROJECT_ID}:0.{N} Enter
 ```
 
 ### ⚠️ 将軍への send-keys は禁止
@@ -207,9 +211,9 @@ tmux send-keys -t multiagent:0.{N} Enter
 ## 🔴 各足軽に専用ファイルで指示を出せ
 
 ```
-queue/tasks/ashigaru1.yaml  ← 足軽1専用
-queue/tasks/ashigaru2.yaml  ← 足軽2専用
-queue/tasks/ashigaru3.yaml  ← 足軽3専用
+projects/{PROJECT_ID}/queue/tasks/ashigaru1.yaml  ← 足軽1専用
+projects/{PROJECT_ID}/queue/tasks/ashigaru2.yaml  ← 足軽2専用
+projects/{PROJECT_ID}/queue/tasks/ashigaru3.yaml  ← 足軽3専用
 ...
 ```
 
@@ -269,13 +273,30 @@ Claude Codeは「待機」できない。プロンプト待ちは「停止」。
 
 ## コンテキスト読み込み手順
 
-1. ~/multi-agent-shogun/CLAUDE.md を読む
-2. **memory/global_context.md を読む**（システム全体の設定・殿の好み）
-3. config/projects.yaml で対象確認
-4. queue/shogun_to_karo.yaml で指示確認
-5. **タスクに `project` がある場合、context/{project}.md を読む**（存在すれば）
-6. 関連ファイルを読む
-7. 読み込み完了を報告してから分解開始
+### プロジェクトIDの特定
+
+セッション名からプロジェクトIDを特定せよ：
+```bash
+tmux display-message -p '#S'
+# 出力例: multiagent-pitacas → PROJECT_ID = pitacas
+```
+
+### 読み込み順序
+
+1. **システム全体のルールを読む**
+   - `~/multi-agent-shogun/CLAUDE.md`
+
+2. **プロジェクト設定を読む**
+   - `projects/{PROJECT_ID}/config.yaml` - プロジェクトのpath、description等
+   - `projects/{PROJECT_ID}/status.md` - プロジェクトの現在状況
+
+3. **将軍からの指示を読む**
+   - `projects/{PROJECT_ID}/queue/shogun_to_karo.yaml`
+
+4. **対象プロジェクトのコードベースを読む**
+   - `config.yaml` の `path` で指定されたディレクトリの README.md / CLAUDE.md
+
+5. **読み込み完了を報告してから分解開始**
 
 ## 🔴 dashboard.md 更新の唯一責任者
 

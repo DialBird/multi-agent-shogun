@@ -41,7 +41,7 @@ workflow:
     target: queue/shogun_to_karo.yaml
   - step: 3
     action: send_keys
-    target: multiagent:0.0
+    target: multiagent-{PROJECT_ID}:0.0
     method: two_bash_calls
   - step: 4
     action: wait_for_report
@@ -65,15 +65,18 @@ uesama_oukagai_rule:
     - 質問事項
 
 # ファイルパス
+# 注意: {PROJECT_ID} は起動時に -p で指定されたプロジェクト名
 # 注意: dashboard.md は読み取りのみ。更新は家老の責任。
 files:
-  config: config/projects.yaml
-  status: status/master_status.yaml
-  command_queue: queue/shogun_to_karo.yaml
+  project_config: projects/{PROJECT_ID}/config.yaml
+  project_status: projects/{PROJECT_ID}/status.md
+  dashboard: projects/{PROJECT_ID}/dashboard.md
+  command_queue: projects/{PROJECT_ID}/queue/shogun_to_karo.yaml
 
 # ペイン設定
+# 注意: セッション名はプロジェクトごとに異なる
 panes:
-  karo: multiagent:0.0
+  karo: multiagent-{PROJECT_ID}:0.0
 
 # send-keys ルール
 send_keys:
@@ -85,7 +88,7 @@ send_keys:
 # 家老の状態確認ルール
 karo_status_check:
   method: tmux_capture_pane
-  command: "tmux capture-pane -t multiagent:0.0 -p | tail -20"
+  command: "tmux capture-pane -t multiagent-{PROJECT_ID}:0.0 -p | tail -20"
   busy_indicators:
     - "thinking"
     - "Effecting…"
@@ -106,7 +109,7 @@ karo_status_check:
 # Memory MCP（知識グラフ記憶）
 memory:
   enabled: true
-  storage: memory/shogun_memory.jsonl
+  storage: projects/{PROJECT_ID}/memory/shogun_memory.jsonl
   # セッション開始時に必ず読み込む（必須）
   on_session_start:
     - action: ToolSearch
@@ -202,13 +205,15 @@ tmux send-keys -t multiagent:0.0 'メッセージ' && tmux send-keys -t multiage
 
 **【1回目】** メッセージを送る：
 ```bash
-tmux send-keys -t multiagent:0.0 'queue/shogun_to_karo.yaml に新しい指示がある。確認して実行せよ。'
+tmux send-keys -t multiagent-{PROJECT_ID}:0.0 'projects/{PROJECT_ID}/queue/shogun_to_karo.yaml に新しい指示がある。確認して実行せよ。'
 ```
 
 **【2回目】** Enterを送る：
 ```bash
-tmux send-keys -t multiagent:0.0 Enter
+tmux send-keys -t multiagent-{PROJECT_ID}:0.0 Enter
 ```
+
+**注意**: `{PROJECT_ID}` は実際のプロジェクト名に置き換えること（例: `multiagent-pitacas:0.0`）
 
 ## 指示の書き方
 
@@ -251,15 +256,34 @@ command: "MCPを調査せよ"
 
 ## コンテキスト読み込み手順
 
+### プロジェクトIDの特定
+
+セッション名からプロジェクトIDを特定せよ：
+```bash
+tmux display-message -p '#S'
+# 出力例: shogun-pitacas → PROJECT_ID = pitacas
+```
+
+### 読み込み順序
+
 1. **Memory MCP で記憶を読み込む**（最優先）
    - `ToolSearch("select:mcp__memory__read_graph")`
    - `mcp__memory__read_graph()`
-2. ~/multi-agent-shogun/CLAUDE.md を読む
-3. **memory/global_context.md を読む**（システム全体の設定・殿の好み）
-4. config/projects.yaml で対象プロジェクト確認
-5. プロジェクトの README.md/CLAUDE.md を読む
-6. dashboard.md で現在状況を把握
-7. 読み込み完了を報告してから作業開始
+
+2. **システム全体のルールを読む**
+   - `CLAUDE.md`（multi-agent-shogun のルート）
+
+3. **プロジェクト設定を読む**
+   - `projects/{PROJECT_ID}/config.yaml` - プロジェクトのpath、description等
+   - `projects/{PROJECT_ID}/status.md` - プロジェクトの現在状況
+
+4. **対象プロジェクトのコードベースを読む**
+   - `config.yaml` の `path` で指定されたディレクトリの README.md / CLAUDE.md
+
+5. **現在状況を把握**
+   - `projects/{PROJECT_ID}/dashboard.md` で進行中タスク・要対応事項を確認
+
+6. **読み込み完了を報告してから作業開始**
 
 ## スキル化判断ルール
 
@@ -340,4 +364,4 @@ mcp__memory__add_observations(observations=[
 ```
 
 ### 保存先
-`memory/shogun_memory.jsonl`
+`projects/{PROJECT_ID}/memory/shogun_memory.jsonl`

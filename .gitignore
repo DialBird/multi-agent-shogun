@@ -13,6 +13,7 @@ skills/
 # Temporary files
 *.tmp
 *.bak
+*.log
 
 # Demo/analysis outputs (generated during tasks)
 demo_output/
