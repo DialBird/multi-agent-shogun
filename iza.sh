@@ -1,12 +1,12 @@
 #!/bin/bash
-# 🏯 multi-agent-shogun 出陣スクリプト（毎日の起動用）
-# Daily Deployment Script for Multi-Agent Orchestration System
+# 🏯 iza - multi-agent-shogun 起動スクリプト
+# "いざ" - Let's go! / Here we go!
 #
 # 使用方法:
-#   shutsujin                          # カレントディレクトリのプロジェクトで起動
-#   shutsujin -p <project_name>        # 指定プロジェクトで起動
-#   shutsujin -s                       # セットアップのみ（Claude起動なし）
-#   shutsujin -h                       # ヘルプ表示
+#   iza                          # カレントディレクトリのプロジェクトで起動
+#   iza -p <project_name>        # 指定プロジェクトで起動
+#   iza -s                       # セットアップのみ（Claude起動なし）
+#   iza -h                       # ヘルプ表示
 
 set -e
 
@@ -60,11 +60,11 @@ while [[ $# -gt 0 ]]; do
             ;;
         -h|--help)
             echo ""
-            echo "🏯 multi-agent-shogun 出陣スクリプト"
+            echo "🏯 iza - multi-agent-shogun 起動スクリプト"
             echo ""
             echo "使用方法:"
-            echo "  shutsujin                    # カレントディレクトリのプロジェクトで起動"
-            echo "  shutsujin -p <project_name>  # 指定プロジェクトで起動"
+            echo "  iza                    # カレントディレクトリのプロジェクトで起動"
+            echo "  iza -p <project_name>  # 指定プロジェクトで起動"
             echo ""
             echo "オプション:"
             echo "  -p, --project     プロジェクト名を明示的に指定"
@@ -73,9 +73,9 @@ while [[ $# -gt 0 ]]; do
             echo "  -h, --help        このヘルプを表示"
             echo ""
             echo "例:"
-            echo "  cd ~/myproject && shutsujin  # myprojectディレクトリから起動（自動検出）"
-            echo "  shutsujin -p myapp           # myappプロジェクトで出陣"
-            echo "  shutsujin -p myapp -s        # セットアップのみ"
+            echo "  cd ~/myproject && iza  # myprojectディレクトリから起動（自動検出）"
+            echo "  iza -p myapp           # myappプロジェクトで出陣"
+            echo "  iza -p myapp -s        # セットアップのみ"
             echo ""
             echo "プロジェクト別セッション:"
             echo "  tmux attach-session -t shogun-myapp"
@@ -85,7 +85,7 @@ while [[ $# -gt 0 ]]; do
             ;;
         *)
             echo "不明なオプション: $1"
-            echo "shutsujin -h でヘルプを表示"
+            echo "iza -h でヘルプを表示"
             exit 1
             ;;
     esac
