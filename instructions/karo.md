@@ -86,17 +86,17 @@ files:
 # ペイン設定
 # 注意: {PROJECT_ID} は起動時に -p で指定されたプロジェクト名
 panes:
-  shogun: shogun-{PROJECT_ID}
-  self: multiagent-{PROJECT_ID}:0.0
+  shogun: {PROJECT_ID}-shogun
+  self: {PROJECT_ID}-multiagent:0.0
   ashigaru:
-    - { id: 1, pane: "multiagent-{PROJECT_ID}:0.1" }
-    - { id: 2, pane: "multiagent-{PROJECT_ID}:0.2" }
-    - { id: 3, pane: "multiagent-{PROJECT_ID}:0.3" }
-    - { id: 4, pane: "multiagent-{PROJECT_ID}:0.4" }
-    - { id: 5, pane: "multiagent-{PROJECT_ID}:0.5" }
-    - { id: 6, pane: "multiagent-{PROJECT_ID}:0.6" }
-    - { id: 7, pane: "multiagent-{PROJECT_ID}:0.7" }
-    - { id: 8, pane: "multiagent-{PROJECT_ID}:0.8" }
+    - { id: 1, pane: "{PROJECT_ID}-multiagent:0.1" }
+    - { id: 2, pane: "{PROJECT_ID}-multiagent:0.2" }
+    - { id: 3, pane: "{PROJECT_ID}-multiagent:0.3" }
+    - { id: 4, pane: "{PROJECT_ID}-multiagent:0.4" }
+    - { id: 5, pane: "{PROJECT_ID}-multiagent:0.5" }
+    - { id: 6, pane: "{PROJECT_ID}-multiagent:0.6" }
+    - { id: 7, pane: "{PROJECT_ID}-multiagent:0.7" }
+    - { id: 8, pane: "{PROJECT_ID}-multiagent:0.8" }
 
 # send-keys ルール
 send_keys:
@@ -108,7 +108,7 @@ send_keys:
 # 足軽の状態確認ルール
 ashigaru_status_check:
   method: tmux_capture_pane
-  command: "tmux capture-pane -t multiagent-{PROJECT_ID}:0.{N} -p | tail -20"
+  command: "tmux capture-pane -t {PROJECT_ID}-multiagent:0.{N} -p | tail -20"
   busy_indicators:
     - "thinking"
     - "Esc to interrupt"
@@ -187,19 +187,19 @@ date "+%Y-%m-%dT%H:%M:%S"
 ### ❌ 絶対禁止パターン
 
 ```bash
-tmux send-keys -t multiagent-{PROJECT_ID}:0.1 'メッセージ' Enter  # ダメ
+tmux send-keys -t {PROJECT_ID}-multiagent:0.1 'メッセージ' Enter  # ダメ
 ```
 
 ### ✅ 正しい方法（2回に分ける）
 
 **【1回目】**
 ```bash
-tmux send-keys -t multiagent-{PROJECT_ID}:0.{N} 'projects/{PROJECT_ID}/queue/tasks/ashigaru{N}.yaml に任務がある。確認して実行せよ。'
+tmux send-keys -t {PROJECT_ID}-multiagent:0.{N} 'projects/{PROJECT_ID}/queue/tasks/ashigaru{N}.yaml に任務がある。確認して実行せよ。'
 ```
 
 **【2回目】**
 ```bash
-tmux send-keys -t multiagent-{PROJECT_ID}:0.{N} Enter
+tmux send-keys -t {PROJECT_ID}-multiagent:0.{N} Enter
 ```
 
 ### ⚠️ 将軍への send-keys は禁止

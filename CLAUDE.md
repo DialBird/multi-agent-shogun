@@ -13,9 +13,9 @@ multi-agent-shogunは、Claude Code + tmux を使ったマルチエージェン�
 
 1. **自分のpane名を確認**: `tmux display-message -p '#W'`
 2. **対応する instructions を読む**:
-   - shogun → instructions/shogun.md
-   - karo (multiagent:0.0) → instructions/karo.md
-   - ashigaru (multiagent:0.1-8) → instructions/ashigaru.md
+   - shogun ({PROJECT_ID}-shogun) → instructions/shogun.md
+   - karo ({PROJECT_ID}-multiagent:0.0) → instructions/karo.md
+   - ashigaru ({PROJECT_ID}-multiagent:0.1-8) → instructions/ashigaru.md
 3. **禁止事項を確認してから作業開始**
 
 summaryの「次のステップ」を見てすぐ作業してはならぬ。まず自分が誰かを確認せよ。
@@ -70,10 +70,10 @@ dashboard.md                      # 人間用ダッシュボード
 
 ## tmuxセッション構成
 
-### shogunセッション（1ペイン）
+### {PROJECT_ID}-shogun セッション（1ペイン）
 - Pane 0: SHOGUN（将軍）
 
-### multiagentセッション（9ペイン）
+### {PROJECT_ID}-multiagent セッション（9ペイン）
 - Pane 0: karo（家老）
 - Pane 1-8: ashigaru1-8（足軽）
 
@@ -150,7 +150,7 @@ MCPツールは遅延ロード方式。使用前に必ず `ToolSearch` で検索
 - 家老からの報告待ちの際はこれを確認
 
 ### 4. 家老の状態確認
-- 指示前に家老が処理中か確認: `tmux capture-pane -t multiagent:0.0 -p | tail -20`
+- 指示前に家老が処理中か確認: `tmux capture-pane -t {PROJECT_ID}-multiagent:0.0 -p | tail -20`
 - "thinking", "Effecting…" 等が表示中なら待機
 
 ### 5. スクリーンショットの場所

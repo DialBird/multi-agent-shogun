@@ -10,8 +10,20 @@
 
 set -e
 
-# スクリプトのディレクトリを取得
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# スクリプトのディレクトリを取得（シンボリックリンクを解決、Bash/Zsh両対応）
+if [ -n "${BASH_SOURCE[0]}" ]; then
+    SCRIPT_PATH="${BASH_SOURCE[0]}"
+elif [ -n "$ZSH_VERSION" ]; then
+    SCRIPT_PATH="${(%):-%x}"
+else
+    SCRIPT_PATH="$0"
+fi
+while [ -L "$SCRIPT_PATH" ]; do
+    LINK_DIR="$(cd "$(dirname "$SCRIPT_PATH")" && pwd)"
+    SCRIPT_PATH="$(readlink "$SCRIPT_PATH")"
+    [[ $SCRIPT_PATH != /* ]] && SCRIPT_PATH="$LINK_DIR/$SCRIPT_PATH"
+done
+SCRIPT_DIR="$(cd "$(dirname "$SCRIPT_PATH")" && pwd)"
 
 # 呼び出し元のディレクトリを保存
 CALLER_DIR="$(pwd)"
@@ -42,6 +54,8 @@ log_war() {
 # ═══════════════════════════════════════════════════════════════════════════════
 SETUP_ONLY=false
 OPEN_TERMINAL=false
+KILL_MODE=false
+KILL_ALL=false
 PROJECT_NAME=""
 
 while [[ $# -gt 0 ]]; do
@@ -58,6 +72,14 @@ while [[ $# -gt 0 ]]; do
             OPEN_TERMINAL=true
             shift
             ;;
+        -k|--kill)
+            KILL_MODE=true
+            shift
+            ;;
+        --kill-all)
+            KILL_ALL=true
+            shift
+            ;;
         -h|--help)
             echo ""
             echo "🏯 iza - multi-agent-shogun 起動スクリプト"
@@ -65,21 +87,28 @@ while [[ $# -gt 0 ]]; do
             echo "使用方法:"
             echo "  iza                    # カレントディレクトリのプロジェクトで起動"
             echo "  iza -p <project_name>  # 指定プロジェクトで起動"
+            echo "  iza -k                 # カレントプロジェクトのセッションを終了"
+            echo "  iza --kill-all         # 全プロジェクトのセッションを終了"
             echo ""
             echo "オプション:"
             echo "  -p, --project     プロジェクト名を明示的に指定"
             echo "  -s, --setup-only  tmuxセッションのセットアップのみ（Claude起動なし）"
             echo "  -t, --terminal    Windows Terminal で新しいタブを開く"
+            echo "  -k, --kill        指定プロジェクトのセッションを終了（撤退）"
+            echo "  --kill-all        全プロジェクトのセッションを終了（総撤退）"
             echo "  -h, --help        このヘルプを表示"
             echo ""
             echo "例:"
             echo "  cd ~/myproject && iza  # myprojectディレクトリから起動（自動検出）"
             echo "  iza -p myapp           # myappプロジェクトで出陣"
             echo "  iza -p myapp -s        # セットアップのみ"
+            echo "  iza -k                 # カレントプロジェクトを撤退"
+            echo "  iza -p myapp -k        # myappプロジェクトを撤退"
+            echo "  iza --kill-all         # 全軍撤退"
             echo ""
             echo "プロジェクト別セッション:"
-            echo "  tmux attach-session -t shogun-myapp"
-            echo "  tmux attach-session -t multiagent-myapp"
+            echo "  tmux attach-session -t myapp-shogun"
+            echo "  tmux attach-session -t myapp-multiagent"
             echo ""
             exit 0
             ;;
@@ -167,11 +196,68 @@ if [ -z "$PROJECT_NAME" ]; then
 fi
 
 # セッション名を定義
-SHOGUN_SESSION="shogun-${PROJECT_NAME}"
-MULTIAGENT_SESSION="multiagent-${PROJECT_NAME}"
+SHOGUN_SESSION="${PROJECT_NAME}-shogun"
+MULTIAGENT_SESSION="${PROJECT_NAME}-multiagent"
 
 # プロジェクトディレクトリを定義
 PROJECT_DIR="./projects/${PROJECT_NAME}"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# KILL モード処理（-k または --kill-all が指定された場合）
+# ═══════════════════════════════════════════════════════════════════════════════
+if [ "$KILL_ALL" = true ]; then
+    echo ""
+    echo -e "\033[1;31m╔══════════════════════════════════════════════════════════════════════════════════╗\033[0m"
+    echo -e "\033[1;31m║\033[0m                        \033[1;37m【 総 撤 退 】全軍撤収！\033[0m                                \033[1;31m║\033[0m"
+    echo -e "\033[1;31m╚══════════════════════════════════════════════════════════════════════════════════╝\033[0m"
+    echo ""
+
+    # 全ての *-shogun と *-multiagent セッションを終了
+    KILLED_COUNT=0
+    for session in $(tmux list-sessions -F "#{session_name}" 2>/dev/null | grep -E "(-shogun$|-multiagent$)"); do
+        tmux kill-session -t "$session" 2>/dev/null
+        log_success "  └─ ${session} 撤収完了"
+        ((KILLED_COUNT++))
+    done
+
+    if [ "$KILLED_COUNT" -eq 0 ]; then
+        log_info "  └─ 撤収対象のセッションは存在せず"
+    else
+        echo ""
+        log_success "✅ 全${KILLED_COUNT}セッション撤収完了。お疲れ様でござった！"
+    fi
+    echo ""
+    exit 0
+fi
+
+if [ "$KILL_MODE" = true ]; then
+    echo ""
+    echo -e "\033[1;33m╔══════════════════════════════════════════════════════════════════════════════════╗\033[0m"
+    echo -e "\033[1;33m║\033[0m                    \033[1;37m【 撤 退 】${PROJECT_NAME} 軍撤収！\033[0m                              \033[1;33m║\033[0m"
+    echo -e "\033[1;33m╚══════════════════════════════════════════════════════════════════════════════════╝\033[0m"
+    echo ""
+
+    KILLED=false
+    if tmux has-session -t "$SHOGUN_SESSION" 2>/dev/null; then
+        tmux kill-session -t "$SHOGUN_SESSION"
+        log_success "  └─ ${SHOGUN_SESSION} 本陣、撤収完了"
+        KILLED=true
+    fi
+    if tmux has-session -t "$MULTIAGENT_SESSION" 2>/dev/null; then
+        tmux kill-session -t "$MULTIAGENT_SESSION"
+        log_success "  └─ ${MULTIAGENT_SESSION} 陣、撤収完了"
+        KILLED=true
+    fi
+
+    if [ "$KILLED" = false ]; then
+        log_info "  └─ ${PROJECT_NAME} の陣は既に存在せず"
+    else
+        echo ""
+        log_success "✅ ${PROJECT_NAME} 撤収完了。お疲れ様でござった！"
+    fi
+    echo ""
+    exit 0
+fi
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # 出陣バナー表示（CC0ライセンスASCIIアート使用）
@@ -478,7 +564,7 @@ PANE_COLORS=("1;31" "1;34" "1;34" "1;34" "1;34" "1;34" "1;34" "1;34" "1;34")  # 
 
 for i in {0..8}; do
     tmux select-pane -t "${MULTIAGENT_SESSION}:0.$i" -T "${PANE_TITLES[$i]}"
-    tmux send-keys -t "${MULTIAGENT_SESSION}:0.$i" "cd $(pwd) && export PS1='(\[\033[${PANE_COLORS[$i]}m\]${PANE_TITLES[$i]}\[\033[0m\]) \[\033[1;32m\]\w\[\033[0m\]\$ ' && clear" Enter
+    tmux send-keys -t "${MULTIAGENT_SESSION}:0.$i" "cd ${SCRIPT_DIR} && clear" Enter
 done
 
 log_success "  └─ 家老・足軽の陣、構築完了"
@@ -489,8 +575,7 @@ echo ""
 # ═══════════════════════════════════════════════════════════════════════════════
 log_war "👑 将軍の本陣を構築中..."
 tmux new-session -d -s "$SHOGUN_SESSION"
-tmux send-keys -t "$SHOGUN_SESSION" "cd $(pwd) && export PS1='(\[\033[1;35m\]将軍\[\033[0m\]) \[\033[1;32m\]\w\[\033[0m\]\$ ' && clear" Enter
-tmux select-pane -t "${SHOGUN_SESSION}:0.0" -P 'bg=#002b36'  # 将軍の Solarized Dark
+tmux send-keys -t "$SHOGUN_SESSION" "cd ${SCRIPT_DIR} && clear" Enter
 
 log_success "  └─ 将軍の本陣、構築完了"
 echo ""
@@ -595,14 +680,14 @@ NINJA_EOF
 
     # 将軍に指示書を読み込ませる
     log_info "  └─ 将軍に指示書を伝達中..."
-    tmux send-keys -t "$SHOGUN_SESSION" "instructions/shogun.md を読んで役割を理解せよ。"
+    tmux send-keys -t "$SHOGUN_SESSION" "以下を順に読んで役割とプロジェクトを理解せよ: 1) ${SCRIPT_DIR}/instructions/shogun.md 2) ${SCRIPT_DIR}/CLAUDE.md 3) ${SCRIPT_DIR}/${PROJECT_DIR}/config.yaml 4) ${SCRIPT_DIR}/${PROJECT_DIR}/context.md - プロジェクトID: ${PROJECT_NAME}"
     sleep 0.5
     tmux send-keys -t "$SHOGUN_SESSION" Enter
 
     # 家老に指示書を読み込ませる
     sleep 2
     log_info "  └─ 家老に指示書を伝達中..."
-    tmux send-keys -t "${MULTIAGENT_SESSION}:0.0" "instructions/karo.md を読んで役割を理解せよ。"
+    tmux send-keys -t "${MULTIAGENT_SESSION}:0.0" "以下を順に読んで役割とプロジェクトを理解せよ: 1) ${SCRIPT_DIR}/instructions/karo.md 2) ${SCRIPT_DIR}/CLAUDE.md 3) ${SCRIPT_DIR}/${PROJECT_DIR}/config.yaml 4) ${SCRIPT_DIR}/${PROJECT_DIR}/context.md - プロジェクトID: ${PROJECT_NAME}"
     sleep 0.5
     tmux send-keys -t "${MULTIAGENT_SESSION}:0.0" Enter
 
@@ -610,7 +695,7 @@ NINJA_EOF
     sleep 2
     log_info "  └─ 足軽に指示書を伝達中..."
     for i in {1..8}; do
-        tmux send-keys -t "${MULTIAGENT_SESSION}:0.$i" "instructions/ashigaru.md を読んで役割を理解せよ。汝は足軽${i}号である。"
+        tmux send-keys -t "${MULTIAGENT_SESSION}:0.$i" "以下を順に読んで役割とプロジェクトを理解せよ: 1) ${SCRIPT_DIR}/instructions/ashigaru.md 2) ${SCRIPT_DIR}/${PROJECT_DIR}/config.yaml 3) ${SCRIPT_DIR}/${PROJECT_DIR}/context.md - 汝は足軽${i}号、プロジェクトID: ${PROJECT_NAME}"
         sleep 0.3
         tmux send-keys -t "${MULTIAGENT_SESSION}:0.$i" Enter
         sleep 0.5

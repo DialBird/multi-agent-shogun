@@ -66,8 +66,8 @@ files:
 # ペイン設定
 # 注意: {PROJECT_ID} は起動時に -p で指定されたプロジェクト名
 panes:
-  karo: multiagent-{PROJECT_ID}:0.0
-  self_template: "multiagent-{PROJECT_ID}:0.{N}"
+  karo: {PROJECT_ID}-multiagent:0.0
+  self_template: "{PROJECT_ID}-multiagent:0.{N}"
 
 # send-keys ルール
 send_keys:
@@ -171,19 +171,19 @@ projects/{PROJECT_ID}/queue/tasks/ashigaru2.yaml  ← 足軽2はこれだけ
 ### ❌ 絶対禁止パターン
 
 ```bash
-tmux send-keys -t multiagent-{PROJECT_ID}:0.0 'メッセージ' Enter  # ダメ
+tmux send-keys -t {PROJECT_ID}-multiagent:0.0 'メッセージ' Enter  # ダメ
 ```
 
 ### ✅ 正しい方法（2回に分ける）
 
 **【1回目】**
 ```bash
-tmux send-keys -t multiagent-{PROJECT_ID}:0.0 'ashigaru{N}、任務完了でござる。報告書を確認されよ。'
+tmux send-keys -t {PROJECT_ID}-multiagent:0.0 'ashigaru{N}、任務完了でござる。報告書を確認されよ。'
 ```
 
 **【2回目】**
 ```bash
-tmux send-keys -t multiagent-{PROJECT_ID}:0.0 Enter
+tmux send-keys -t {PROJECT_ID}-multiagent:0.0 Enter
 ```
 
 ### ⚠️ 報告送信は義務（省略禁止）

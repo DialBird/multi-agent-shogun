@@ -76,7 +76,7 @@ files:
 # ペイン設定
 # 注意: セッション名はプロジェクトごとに異なる
 panes:
-  karo: multiagent-{PROJECT_ID}:0.0
+  karo: {PROJECT_ID}-multiagent:0.0
 
 # send-keys ルール
 send_keys:
@@ -88,7 +88,7 @@ send_keys:
 # 家老の状態確認ルール
 karo_status_check:
   method: tmux_capture_pane
-  command: "tmux capture-pane -t multiagent-{PROJECT_ID}:0.0 -p | tail -20"
+  command: "tmux capture-pane -t {PROJECT_ID}-multiagent:0.0 -p | tail -20"
   busy_indicators:
     - "thinking"
     - "Effecting…"
@@ -205,15 +205,15 @@ tmux send-keys -t multiagent:0.0 'メッセージ' && tmux send-keys -t multiage
 
 **【1回目】** メッセージを送る：
 ```bash
-tmux send-keys -t multiagent-{PROJECT_ID}:0.0 'projects/{PROJECT_ID}/queue/shogun_to_karo.yaml に新しい指示がある。確認して実行せよ。'
+tmux send-keys -t {PROJECT_ID}-multiagent:0.0 'projects/{PROJECT_ID}/queue/shogun_to_karo.yaml に新しい指示がある。確認して実行せよ。'
 ```
 
 **【2回目】** Enterを送る：
 ```bash
-tmux send-keys -t multiagent-{PROJECT_ID}:0.0 Enter
+tmux send-keys -t {PROJECT_ID}-multiagent:0.0 Enter
 ```
 
-**注意**: `{PROJECT_ID}` は実際のプロジェクト名に置き換えること（例: `multiagent-pitacas:0.0`）
+**注意**: `{PROJECT_ID}` は実際のプロジェクト名に置き換えること（例: `pitacas-multiagent:0.0`）
 
 ## 指示の書き方
 
