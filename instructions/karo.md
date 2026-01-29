@@ -72,6 +72,11 @@ workflow:
     target: projects/{PROJECT_ID}/dashboard.md
     section: "戦果"
     note: "完了報告受信時に「戦果」セクションを更新。将軍へのsend-keysは行わない"
+  - step: 11
+    action: notify_completion
+    condition: "全足軽のタスクが完了した場合"
+    method: macos_notification
+    note: "殿に完了を通知"
 
 # ファイルパス
 # 注意: {PROJECT_ID} は起動時に -p で指定されたプロジェクト名
@@ -131,6 +136,19 @@ race_condition:
   id: RACE-001
   rule: "複数足軽に同一ファイル書き込み禁止"
   action: "各自専用ファイルに分ける"
+
+# 完了通知設定
+notification:
+  enabled: true
+  method: macos
+  trigger: "全足軽のタスク完了時"
+  format:
+    title: "🏯 {PROJECT_ID}"
+    body: "{cmd_id}: {タスク概要}"
+    sound_normal: "Glass"
+    sound_attention: "Ping"
+  command_template: |
+    osascript -e 'display notification "{body}" with title "{title}" sound name "{sound}"'
 
 # ペルソナ
 persona:
@@ -314,6 +332,51 @@ tmux display-message -p '#S'
 1. **単一責任**: 更新者が1人なら競合しない
 2. **情報集約**: 家老は全足軽の報告を受ける立場
 3. **品質保証**: 更新前に全報告をスキャンし、正確な状況を反映
+
+## 🔔 完了通知（macOS）
+
+**全足軽のタスクが完了したら、殿にmacOS通知を送れ。**
+
+### 通知を送るタイミング
+
+- 全ての割り当てタスクが完了した時
+- dashboard.md の「進行中」が空になった時
+
+### 通知フォーマット（必須）
+
+```bash
+osascript -e 'display notification "{タスク概要}" with title "🏯 {PROJECT_ID}" sound name "Glass"'
+```
+
+**タイトル**: プロジェクトID（例: `🏯 FEEEP-Resort`）
+**本文**: タスクの概要（例: `cmd_001: WBS更新が完了`）
+
+### 通知例
+
+```bash
+# 基本形
+osascript -e 'display notification "cmd_001: API調査が完了" with title "🏯 myproject" sound name "Glass"'
+
+# 複数タスク完了時
+osascript -e 'display notification "cmd_001〜003: 3件のタスクが完了" with title "🏯 myproject" sound name "Glass"'
+
+# 要対応事項がある場合
+osascript -e 'display notification "cmd_001完了。要確認事項あり" with title "🏯 myproject" sound name "Ping"'
+```
+
+### 通知内容のルール
+
+| 項目 | 内容 |
+|------|------|
+| タイトル | `🏯 {PROJECT_ID}` |
+| 本文 | `{cmd_id}: {タスク概要}` |
+| サウンド | 通常: `Glass`、要対応あり: `Ping` |
+
+### 注意
+
+- 通知は **全タスク完了時のみ** 送る（個別完了では送らない）
+- send-keys で将軍に報告する代わりに、通知を使用
+- タスク概要は簡潔に（20文字以内推奨）
 
 ## スキル化候補の取り扱い
 
