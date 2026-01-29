@@ -4,7 +4,7 @@
 
 **Multi-Agent Orchestration System for Claude Code**
 
-*One command. Eight AI agents working in parallel.*
+*One command. Five AI agents working in parallel.*
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Claude Code](https://img.shields.io/badge/Claude-Code-blueviolet)](https://claude.ai)
@@ -21,7 +21,7 @@
 **multi-agent-shogun** is a system that runs multiple Claude Code instances simultaneously, organized like a feudal Japanese army.
 
 **Why use this?**
-- Give one command, get 8 AI workers executing in parallel
+- Give one command, get 5 AI workers executing in parallel
 - No waiting - you can keep giving commands while tasks run in background
 - AI remembers your preferences across sessions (Memory MCP)
 - Real-time progress tracking via dashboard
@@ -38,10 +38,10 @@
       │    KARO     │  ← Distributes tasks to workers
       └──────┬──────┘
              │
-    ┌─┬─┬─┬─┴─┬─┬─┬─┐
-    │1│2│3│4│5│6│7│8│  ← 8 workers execute in parallel
-    └─┴─┴─┴─┴─┴─┴─┴─┘
-        ASHIGARU
+    ┌─┬─┬─┴─┬─┐
+    │1│2│3│4│5│  ← 5 workers execute in parallel
+    └─┴─┴─┴─┴─┘
+      ASHIGARU
 ```
 
 ---
@@ -89,7 +89,7 @@ That's it! The installer handles everything automatically.
 </td>
 <td>
 
-✅ **Done!** 10 AI agents are now running.
+✅ **Done!** 7 AI agents are now running.
 
 </td>
 </tr>
@@ -176,7 +176,7 @@ Then restart your computer and run `install.bat` again.
 
 ### What `shutsujin_departure.sh` does:
 - ✅ Creates tmux sessions (shogun + multiagent)
-- ✅ Launches Claude Code on all 10 agents
+- ✅ Launches Claude Code on all 7 agents
 - ✅ Automatically loads instruction files for each agent
 - ✅ Resets queue files for a fresh start
 
@@ -204,13 +204,13 @@ If you prefer to install dependencies manually:
 
 ### ✅ What Happens After Setup
 
-After running either option, **10 AI agents** will start automatically:
+After running either option, **7 AI agents** will start automatically:
 
 | Agent | Role | Quantity |
 |-------|------|----------|
 | 🏯 Shogun | Commander - receives your orders | 1 |
 | 📋 Karo | Manager - distributes tasks | 1 |
-| ⚔️ Ashigaru | Workers - execute tasks in parallel | 8 |
+| ⚔️ Ashigaru | Workers - execute tasks in parallel | 5 |
 
 You'll see tmux sessions created:
 - `shogun` - Connect here to give commands
@@ -264,7 +264,7 @@ Open `dashboard.md` in your editor to see real-time status:
 
 ### ⚡ 1. Parallel Execution
 
-One command can spawn up to 8 parallel tasks:
+One command can spawn up to 5 parallel tasks:
 
 ```
 You: "Research 5 MCP servers"
@@ -535,7 +535,7 @@ language: en   # Japanese + English translation
 │      │                                                              │
 │      ├──▶ Create tmux sessions                                      │
 │      │         • "shogun" session (1 pane)                          │
-│      │         • "multiagent" session (9 panes, 3x3 grid)           │
+│      │         • "multiagent" session (6 panes, 2x3 grid)           │
 │      │                                                              │
 │      ├──▶ Reset queue files and dashboard                           │
 │      │                                                              │
@@ -684,7 +684,7 @@ tmux attach-session -t multiagent
 |---------|-------------|
 | `tmux attach -t shogun` | Connect to Shogun |
 | `tmux attach -t multiagent` | Connect to workers |
-| `Ctrl+B` then `0-8` | Switch between panes |
+| `Ctrl+B` then `0-5` | Switch between panes |
 | `Ctrl+B` then `d` | Detach (leave running) |
 | `tmux kill-session -t shogun` | Stop Shogun session |
 | `tmux kill-session -t multiagent` | Stop worker sessions |

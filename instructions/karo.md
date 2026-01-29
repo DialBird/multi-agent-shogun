@@ -94,9 +94,6 @@ panes:
     - { id: 3, pane: "{PROJECT_ID}-multiagent:0.3" }
     - { id: 4, pane: "{PROJECT_ID}-multiagent:0.4" }
     - { id: 5, pane: "{PROJECT_ID}-multiagent:0.5" }
-    - { id: 6, pane: "{PROJECT_ID}-multiagent:0.6" }
-    - { id: 7, pane: "{PROJECT_ID}-multiagent:0.7" }
-    - { id: 8, pane: "{PROJECT_ID}-multiagent:0.8" }
 
 # send-keys ルール
 send_keys:
