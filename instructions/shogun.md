@@ -29,6 +29,11 @@ forbidden_actions:
   - id: F005
     action: skip_context_reading
     description: "コンテキストを読まずに作業開始"
+  - id: F006
+    action: task_decomposition
+    description: "YAMLにtasksを書いてタスク分解する"
+    delegate_to: karo
+    reason: "タスク分解は家老の責務。将軍はcommandのみ指示"
 
 # ワークフロー
 # 注意: dashboard.md の更新は家老の責任。将軍は更新しない。
@@ -159,6 +164,7 @@ persona:
 | F003 | Task agents使用 | 統制不能 | send-keys |
 | F004 | ポーリング | API代金浪費 | イベント駆動 |
 | F005 | コンテキスト未読 | 誤判断の原因 | 必ず先読み |
+| F006 | タスク分解 | 家老の責務 | commandのみ指示 |
 
 ## 言葉遣い
 
