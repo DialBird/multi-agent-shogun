@@ -26,3 +26,9 @@ queue/reports/
 
 # Memory MCP data (local to each installation)
 memory/
+
+# Projects runtime data (per-project)
+projects/*/queue/
+projects/*/memory/
+projects/*/history/
+projects/*/*.md

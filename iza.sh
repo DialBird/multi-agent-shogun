@@ -363,27 +363,27 @@ project:
   priority: normal  # high / normal / low
 EOF
 
-    # context.md を作成（プロジェクト固有のルール）
-    cat > "${PROJECT_DIR}/context.md" << 'EOF'
-# プロジェクト固有コンテキスト
+    # status.md を作成（プロジェクトの現在状況）
+    cat > "${PROJECT_DIR}/status.md" << 'EOF'
+# プロジェクト現在状況
 
-このファイルにプロジェクト固有のルールを記載してください。
-将軍・家老・足軽がこのプロジェクトで守るべき制約事項です。
+このファイルはプロジェクトの現在状況を記録する。
+コーディング規約等は対象プロジェクトの CLAUDE.md を参照せよ。
 
-## 技術スタック
-- （例: Next.js 15, TypeScript, Prisma）
+## 現在のフェーズ
+- （例: MVP開発中、リファクタリング中、バグ修正中）
 
-## コーディング規約
-- （例: any 型の使用禁止）
+## 最近の重要決定
+- YYYY-MM-DD: （決定内容）
 
-## 禁止事項
-- （例: console.log を本番コードに残さない）
+## 現在のブロッカー
+- なし
 
-## 命名規則
-- （例: コンポーネント: PascalCase）
+## 今週の目標
+- （短期目標）
 
-## その他の注意事項
--
+## 注意点
+- （一時的な注意事項）
 EOF
 
     log_success "  └─ プロジェクトディレクトリ作成完了"
@@ -680,14 +680,14 @@ NINJA_EOF
 
     # 将軍に指示書を読み込ませる
     log_info "  └─ 将軍に指示書を伝達中..."
-    tmux send-keys -t "$SHOGUN_SESSION" "以下を順に読んで役割とプロジェクトを理解せよ: 1) ${SCRIPT_DIR}/instructions/shogun.md 2) ${SCRIPT_DIR}/CLAUDE.md 3) ${SCRIPT_DIR}/${PROJECT_DIR}/config.yaml 4) ${SCRIPT_DIR}/${PROJECT_DIR}/context.md - プロジェクトID: ${PROJECT_NAME}"
+    tmux send-keys -t "$SHOGUN_SESSION" "以下を順に読んで役割とプロジェクトを理解せよ: 1) ${SCRIPT_DIR}/instructions/shogun.md 2) ${SCRIPT_DIR}/CLAUDE.md 3) ${SCRIPT_DIR}/${PROJECT_DIR}/config.yaml 4) ${SCRIPT_DIR}/${PROJECT_DIR}/status.md - プロジェクトID: ${PROJECT_NAME}"
     sleep 0.5
     tmux send-keys -t "$SHOGUN_SESSION" Enter
 
     # 家老に指示書を読み込ませる
     sleep 2
     log_info "  └─ 家老に指示書を伝達中..."
-    tmux send-keys -t "${MULTIAGENT_SESSION}:0.0" "以下を順に読んで役割とプロジェクトを理解せよ: 1) ${SCRIPT_DIR}/instructions/karo.md 2) ${SCRIPT_DIR}/CLAUDE.md 3) ${SCRIPT_DIR}/${PROJECT_DIR}/config.yaml 4) ${SCRIPT_DIR}/${PROJECT_DIR}/context.md - プロジェクトID: ${PROJECT_NAME}"
+    tmux send-keys -t "${MULTIAGENT_SESSION}:0.0" "以下を順に読んで役割とプロジェクトを理解せよ: 1) ${SCRIPT_DIR}/instructions/karo.md 2) ${SCRIPT_DIR}/CLAUDE.md 3) ${SCRIPT_DIR}/${PROJECT_DIR}/config.yaml 4) ${SCRIPT_DIR}/${PROJECT_DIR}/status.md - プロジェクトID: ${PROJECT_NAME}"
     sleep 0.5
     tmux send-keys -t "${MULTIAGENT_SESSION}:0.0" Enter
 
@@ -695,7 +695,7 @@ NINJA_EOF
     sleep 2
     log_info "  └─ 足軽に指示書を伝達中..."
     for i in {1..8}; do
-        tmux send-keys -t "${MULTIAGENT_SESSION}:0.$i" "以下を順に読んで役割とプロジェクトを理解せよ: 1) ${SCRIPT_DIR}/instructions/ashigaru.md 2) ${SCRIPT_DIR}/${PROJECT_DIR}/config.yaml 3) ${SCRIPT_DIR}/${PROJECT_DIR}/context.md - 汝は足軽${i}号、プロジェクトID: ${PROJECT_NAME}"
+        tmux send-keys -t "${MULTIAGENT_SESSION}:0.$i" "以下を順に読んで役割とプロジェクトを理解せよ: 1) ${SCRIPT_DIR}/instructions/ashigaru.md 2) ${SCRIPT_DIR}/${PROJECT_DIR}/config.yaml 3) ${SCRIPT_DIR}/${PROJECT_DIR}/status.md - 汝は足軽${i}号、プロジェクトID: ${PROJECT_NAME}"
         sleep 0.3
         tmux send-keys -t "${MULTIAGENT_SESSION}:0.$i" Enter
         sleep 0.5

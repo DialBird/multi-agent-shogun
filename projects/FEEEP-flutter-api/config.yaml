@@ -1,0 +1,14 @@
+# プロジェクト設定
+project:
+  id: FEEEP-flutter-api
+  name: "FEEEP-flutter-api"
+  path: "/Users/taniguchitakashiryou/works/4NEXT/FEEEP/userapp_webapi"
+
+  # 追加情報（任意）
+  description: ""
+  notion_url: ""
+  github_url: ""
+
+  # プロジェクト固有の設定
+  language: ja
+  priority: normal  # high / normal / low

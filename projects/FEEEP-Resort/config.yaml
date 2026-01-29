@@ -1,0 +1,14 @@
+# プロジェクト設定
+project:
+  id: FEEEP-Resort
+  name: "FEEEP-Resort"
+  path: "/Users/taniguchitakashiryou/works/4NEXT/FEEEP-Resort"
+
+  # 追加情報（任意）
+  description: ""
+  notion_url: ""
+  github_url: ""
+
+  # プロジェクト固有の設定
+  language: ja
+  priority: normal  # high / normal / low
