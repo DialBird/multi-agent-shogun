@@ -118,6 +118,40 @@ skill_candidate:
     - 他Ashigaruにも有用
   action: report_to_karo
 
+# 指定スキル使用義務
+required_skills:
+  mandatory: true
+  check_in_task_yaml: "required_skills"
+  report_usage: true
+  available_skills:
+    - id: "/tdd"
+      type: skill
+      agent: tdd-guide
+      use_for: "新機能実装、バグ修正"
+    - id: "/ddd-patterns"
+      type: skill
+      use_for: "Entity/Repository/Service実装"
+    - id: "/frontend-design"
+      type: skill
+      use_for: "UI実装"
+    - id: "/build-fix"
+      type: skill
+      agent: build-error-resolver
+      use_for: "ビルド・型エラー修正"
+    - id: "/refactor-clean"
+      type: skill
+      agent: refactor-cleaner
+      use_for: "デッドコード削除"
+    - id: "code-simplifier"
+      type: agent
+      use_for: "コード整理"
+    - id: "code-reviewer"
+      type: agent
+      use_for: "セルフレビュー"
+    - id: "security-reviewer"
+      type: agent
+      use_for: "セキュリティ分析"
+
 ---
 
 # Ashigaru（足軽）指示書
@@ -200,10 +234,23 @@ task_id: subtask_001
 timestamp: "2026-01-25T10:15:00"
 status: done  # done | failed | blocked
 result:
-  summary: "WBS 2.3節 完了でござる"
+  summary: "UserService実装完了でござる"
   files_modified:
-    - "/mnt/c/TS/docs/outputs/WBS_v2.md"
-  notes: "担当者3名、期間を2/1-2/15に設定"
+    - "/path/to/project/src/services/UserService.ts"
+    - "/path/to/project/src/services/UserService.test.ts"
+  notes: "TDDでRed→Green→Refactor完了"
+# ═══════════════════════════════════════════════════════════════
+# 【必須】使用したスキル/エージェント
+# ═══════════════════════════════════════════════════════════════
+skills_used:
+  - skill: "/tdd"
+    how: "テストを先に書き、Red→Green→Refactorで実装"
+  - skill: "/ddd-patterns"
+    how: "Repository層のインターフェース設計を参照"
+  # 指定されたが使わなかった場合
+  # - skill: "/frontend-design"
+  #   skipped: true
+  #   reason: "UIタスクではなかったため"
 # ═══════════════════════════════════════════════════════════════
 # 【必須】スキル化候補の検討（毎回必ず記入せよ！）
 # ═══════════════════════════════════════════════════════════════
@@ -234,6 +281,44 @@ skill_candidate:
 1. status を `blocked` に
 2. notes に「競合リスクあり」と記載
 3. 家老に確認を求める
+
+## 🔴 指定スキル/エージェントの使用義務（超重要）
+
+タスクYAMLに `required_skills` が指定されている場合、**必ずそのスキル/エージェントを使用せよ**。
+
+### タスクYAMLの確認項目
+
+```yaml
+task:
+  task_id: subtask_001
+  description: "..."
+  required_skills: ["/tdd", "/ddd-patterns"]  # ← これを確認！
+  context_files:                               # ← これも読め！
+    - "/path/to/project/CLAUDE.md"
+```
+
+### スキル/エージェントの使い方
+
+| 指定 | 使用方法 |
+|------|----------|
+| `/tdd` | TDDワークフローを開始。Red→Green→Refactorで実装 |
+| `/ddd-patterns` | DDDパターンを参照。Entity/Repository/Serviceの設計確認 |
+| `/frontend-design` | UI実装前に実行。デザイン品質を確保 |
+| `/build-fix` | ビルドエラー修正に集中。最小差分で修正 |
+| `/refactor-clean` | デッドコード削除。分析ツールで特定→安全に削除 |
+| `code-simplifier` | Task agentで起動。コード整理 |
+| `code-reviewer` | Task agentで起動。セルフレビュー |
+| `security-reviewer` | Task agentで起動。セキュリティ分析 |
+
+### ⚠️ 使用しなかった場合
+
+- 報告書の `notes` に **理由を明記** せよ
+- 正当な理由なく使用しなかった場合、任務失敗とみなす
+
+### context_files の読み込み
+
+`context_files` に指定されたファイルは **作業開始前に必ず読め**。
+特に対象プロジェクトの `CLAUDE.md` にはコーディング規約が書かれている。
 
 ## ペルソナ設定（作業開始時）
 

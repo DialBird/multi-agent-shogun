@@ -155,6 +155,27 @@ persona:
   professional: "テックリード / スクラムマスター"
   speech_style: "戦国風"
 
+# タスク割当時のスキル指定（必須）
+task_skill_assignment:
+  mandatory: true
+  field_name: "required_skills"
+  context_files_field: "context_files"
+  mappings:
+    - task_type: new_feature
+      skills: ["/tdd", "/ddd-patterns"]
+    - task_type: bug_fix
+      skills: ["/tdd"]
+    - task_type: api_implementation
+      skills: ["/ddd-patterns"]
+    - task_type: ui_implementation
+      skills: ["/frontend-design"]
+    - task_type: refactoring
+      skills: ["/refactor-clean", "code-simplifier"]
+    - task_type: build_error
+      skills: ["/build-fix"]
+    - task_type: security_related
+      skills: ["security-reviewer"]
+
 ---
 
 # Karo（家老）指示書
@@ -238,11 +259,79 @@ projects/{PROJECT_ID}/queue/tasks/ashigaru3.yaml  ← 足軽3専用
 task:
   task_id: subtask_001
   parent_cmd: cmd_001
-  description: "hello1.mdを作成し、「おはよう1」と記載せよ"
-  target_path: "/mnt/c/tools/multi-agent-shogun/hello1.md"
+  description: "UserServiceのcreateUserメソッドを実装"
+  target_path: "/path/to/project/src/services/UserService.ts"
   status: assigned
   timestamp: "2026-01-25T12:00:00"
+  # ═══════════════════════════════════════════════════════════════
+  # 【必須】スキル/エージェント指定（足軽はこれに従う義務あり）
+  # ═══════════════════════════════════════════════════════════════
+  required_skills: ["/tdd", "ddd-patterns"]  # 使用すべきスキル/エージェント
+  context_files:                              # 足軽が読むべきファイル
+    - "/path/to/project/CLAUDE.md"
 ```
+
+## 🔴 タスク種別とスキル/エージェントのマッピング（必読）
+
+タスクを分解する際、**必ず適切なスキル/エージェントを指定せよ**。
+足軽は指定されたスキルを使う義務がある。
+
+### スキル/エージェント一覧
+
+| 種別 | スキル/エージェント | 用途 |
+|------|---------------------|------|
+| `/tdd` | tdd-guide エージェント | テスト駆動開発。新機能・バグ修正に必須 |
+| `/ddd-patterns` | スキル | Entity/Repository/Service実装時のパターン参照 |
+| `/frontend-design` | スキル | UI実装時。コンポーネント・ページ作成 |
+| `/build-fix` | build-error-resolver | ビルド・型エラー修正 |
+| `/refactor-clean` | refactor-cleaner | デッドコード削除 |
+| `code-simplifier` | エージェント | コード整理・可読性向上 |
+| `code-reviewer` | エージェント | コミット前のセルフレビュー |
+| `security-reviewer` | エージェント | 認証・API実装後のセキュリティ分析 |
+
+### タスク種別ごとの推奨スキル
+
+| タスク種別 | 必須スキル | 理由 |
+|------------|------------|------|
+| 新機能実装 | `/tdd`, `/ddd-patterns` | テスト駆動 + ドメイン設計 |
+| バグ修正 | `/tdd` | 再現テスト→修正→検証 |
+| API実装 | `/ddd-patterns` | Service/Repository層の設計 |
+| UI実装 | `/frontend-design` | デザイン品質確保 |
+| リファクタリング | `/refactor-clean`, `code-simplifier` | 安全な整理 |
+| ビルドエラー | `/build-fix` | 最小差分で修正 |
+| セキュリティ関連 | `security-reviewer` | 脆弱性チェック |
+
+### 指定例
+
+```yaml
+# 新機能実装の場合
+task:
+  description: "投票機能のVoteServiceを実装"
+  required_skills: ["/tdd", "/ddd-patterns"]
+  context_files:
+    - "/path/to/project/CLAUDE.md"
+    - "/path/to/project/docs/2_design/voting-architecture.md"
+
+# UI実装の場合
+task:
+  description: "投票結果表示コンポーネントを作成"
+  required_skills: ["/frontend-design"]
+  context_files:
+    - "/path/to/project/CLAUDE.md"
+
+# バグ修正の場合
+task:
+  description: "ログイン時のセッション切れバグを修正"
+  required_skills: ["/tdd"]
+  context_files:
+    - "/path/to/project/CLAUDE.md"
+```
+
+### ⚠️ 注意事項
+
+- **スキル指定なしのタスクは不完全** とみなす
+- 対象プロジェクトのCLAUDE.mdは **必ず** `context_files` に含めよ
+- 足軽がスキルを使わなかった場合、報告時に理由を求めよ
 
 ## 🔴 「起こされたら全確認」方式
 
