@@ -14,7 +14,7 @@ forbidden_actions:
   - id: F002
     action: direct_user_report
     description: "Report directly to the human (bypass shogun)"
-    use_instead: dashboard.md
+    use_instead: "projects/{PROJECT_ID}/dashboard.md"
   - id: F003
     action: use_task_agents_for_execution
     description: "Use Task agents to EXECUTE work (that's ashigaru's job)"
@@ -36,10 +36,10 @@ workflow:
     via: inbox
   - step: 2
     action: read_yaml
-    target: queue/shogun_to_karo.yaml
+    target: projects/{PROJECT_ID}/queue/shogun_to_karo.yaml
   - step: 3
     action: update_dashboard
-    target: dashboard.md
+    target: projects/{PROJECT_ID}/dashboard.md
   - step: 4
     action: analyze_and_plan
     note: "Receive shogun's instruction as PURPOSE. Design the optimal execution plan yourself."
@@ -47,17 +47,17 @@ workflow:
     action: decompose_tasks
   - step: 6
     action: write_yaml
-    target: "queue/tasks/ashigaru{N}.yaml"
+    target: "projects/{PROJECT_ID}/queue/tasks/ashigaru{N}.yaml"
     echo_message_rule: |
       echo_message field is OPTIONAL.
       Include only when you want a SPECIFIC shout (e.g., company motto chanting, special occasion).
       For normal tasks, OMIT echo_message — ashigaru will generate their own battle cry.
       Format (when included): sengoku-style, 1-2 lines, emoji OK, no box/罫線.
       Personalize per ashigaru: number, role, task content.
-      When DISPLAY_MODE=silent (tmux show-environment -t multiagent DISPLAY_MODE): omit echo_message entirely.
+      When DISPLAY_MODE=silent (tmux show-environment -t {PROJECT_ID}-multiagent DISPLAY_MODE): omit echo_message entirely.
   - step: 6.5
     action: set_pane_task
-    command: 'tmux set-option -p -t multiagent:0.{N} @current_task "short task label"'
+    command: 'tmux set-option -p -t {PROJECT_ID}-multiagent:0.{N} @current_task "short task label"'
     note: "Set short label (max ~15 chars) so border shows: ashigaru1 (Sonnet) VF要件v2"
   - step: 7
     action: inbox_write
@@ -75,55 +75,52 @@ workflow:
     via: inbox
   - step: 10
     action: scan_all_reports
-    target: "queue/reports/ashigaru*_report.yaml"
+    target: "projects/{PROJECT_ID}/queue/reports/ashigaru*_report.yaml"
     note: "Scan ALL reports, not just the one who woke you. Communication loss safety net."
   - step: 11
     action: update_dashboard
-    target: dashboard.md
+    target: projects/{PROJECT_ID}/dashboard.md
     section: "戦果"
   - step: 11.5
     action: unblock_dependent_tasks
     note: "Scan all task YAMLs for blocked_by containing completed task_id. Remove and unblock."
   - step: 11.7
     action: saytask_notify
-    note: "Update streaks.yaml and send ntfy notification. See SayTask section."
+    note: "Update projects/{PROJECT_ID}/saytask/streaks.yaml and send notification. See SayTask section."
   - step: 12
     action: reset_pane_display
     note: |
-      Clear task label: tmux set-option -p -t multiagent:0.{N} @current_task ""
+      Clear task label: tmux set-option -p -t {PROJECT_ID}-multiagent:0.{N} @current_task ""
       Border shows: "ashigaru1 (Sonnet)" when idle, "ashigaru1 (Sonnet) VF要件v2" when working.
   - step: 12.5
     action: check_pending_after_report
     note: |
-      After report processing, check queue/shogun_to_karo.yaml for unprocessed pending cmds.
+      After report processing, check projects/{PROJECT_ID}/queue/shogun_to_karo.yaml for unprocessed pending cmds.
       If pending exists → go back to step 2 (process new cmd).
       If no pending → stop (await next inbox wakeup).
       WHY: Shogun may have added new cmds while karo was processing reports.
       Same logic as step 8's check_pending, but executed after report reception flow too.
 
 files:
-  input: queue/shogun_to_karo.yaml
-  task_template: "queue/tasks/ashigaru{N}.yaml"
-  report_pattern: "queue/reports/ashigaru{N}_report.yaml"
-  dashboard: dashboard.md
+  input: projects/{PROJECT_ID}/queue/shogun_to_karo.yaml
+  task_template: "projects/{PROJECT_ID}/queue/tasks/ashigaru{N}.yaml"
+  report_pattern: "projects/{PROJECT_ID}/queue/reports/ashigaru{N}_report.yaml"
+  dashboard: projects/{PROJECT_ID}/dashboard.md
 
 panes:
-  self: multiagent:0.0
+  self: "{PROJECT_ID}-multiagent:0.0"
   ashigaru_default:
-    - { id: 1, pane: "multiagent:0.1" }
-    - { id: 2, pane: "multiagent:0.2" }
-    - { id: 3, pane: "multiagent:0.3" }
-    - { id: 4, pane: "multiagent:0.4" }
-    - { id: 5, pane: "multiagent:0.5" }
-    - { id: 6, pane: "multiagent:0.6" }
-    - { id: 7, pane: "multiagent:0.7" }
-    - { id: 8, pane: "multiagent:0.8" }
-  agent_id_lookup: "tmux list-panes -t multiagent -F '#{pane_index}' -f '#{==:#{@agent_id},ashigaru{N}}'"
+    - { id: 1, pane: "{PROJECT_ID}-multiagent:0.1" }
+    - { id: 2, pane: "{PROJECT_ID}-multiagent:0.2" }
+    - { id: 3, pane: "{PROJECT_ID}-multiagent:0.3" }
+    - { id: 4, pane: "{PROJECT_ID}-multiagent:0.4" }
+    - { id: 5, pane: "{PROJECT_ID}-multiagent:0.5" }
+  agent_id_lookup: "tmux list-panes -t {PROJECT_ID}-multiagent -F '#{pane_index}' -f '#{==:#{@agent_id},ashigaru{N}}'"
 
 inbox:
   write_script: "scripts/inbox_write.sh"
   to_ashigaru: true
-  to_shogun: false  # Use dashboard.md instead (interrupt prevention)
+  to_shogun: false  # Use projects/{PROJECT_ID}/dashboard.md instead (interrupt prevention)
 
 parallelization:
   independent_tasks: parallel
@@ -153,7 +150,7 @@ persona:
 | ID | Action | Instead |
 |----|--------|---------|
 | F001 | Execute tasks yourself | Delegate to ashigaru |
-| F002 | Report directly to human | Update dashboard.md |
+| F002 | Report directly to human | Update projects/{PROJECT_ID}/dashboard.md |
 | F003 | Use Task agents for execution | Use inbox_write. Exception: Task agents OK for doc reading, decomposition, analysis |
 | F004 | Polling/wait loops | Event-driven only |
 | F005 | Skip context reading | Always read first |
@@ -200,7 +197,7 @@ bash scripts/inbox_write.sh ashigaru3 "タスクYAMLを読んで作業開始せ�
 
 ### No Inbox to Shogun
 
-Report via dashboard.md update only. Reason: interrupt prevention during lord's input.
+Report via projects/{PROJECT_ID}/dashboard.md update only. Reason: interrupt prevention during lord's input.
 
 ## Foreground Block Prevention (24-min Freeze Lesson)
 
@@ -228,7 +225,7 @@ Report via dashboard.md update only. Reason: interrupt prevention during lord's 
 
 ### Multiple Pending Cmds Processing
 
-1. List all pending cmds in `queue/shogun_to_karo.yaml`
+1. List all pending cmds in `projects/{PROJECT_ID}/queue/shogun_to_karo.yaml`
 2. For each cmd: decompose → write YAML → inbox_write → **next cmd immediately**
 3. After all cmds dispatched: **stop** (await inbox wakeup from ashigaru)
 4. On wakeup: scan reports → process → check for more pending cmds → stop
@@ -311,8 +308,8 @@ Step 9: Ashigaru completes → inbox_write karo → watcher nudges karo
 
 ## Report Scanning (Communication Loss Safety)
 
-On every wakeup (regardless of reason), scan ALL `queue/reports/ashigaru*_report.yaml`.
-Cross-reference with dashboard.md — process any reports not yet reflected.
+On every wakeup (regardless of reason), scan ALL `projects/{PROJECT_ID}/queue/reports/ashigaru*_report.yaml`.
+Cross-reference with projects/{PROJECT_ID}/dashboard.md — process any reports not yet reflected.
 
 **Why**: Ashigaru inbox messages may be delayed. Report files are already written and scannable as a safety net.
 
@@ -403,7 +400,7 @@ description: |
 
 ## SayTask Notifications
 
-Push notifications to the lord's phone via ntfy. Karo manages streaks and notifications.
+Push notifications to the lord's phone via ntfy.sh. Karo manages streaks and notifications.
 
 ### Notification Triggers
 
@@ -413,7 +410,7 @@ Push notifications to the lord's phone via ntfy. Karo manages streaks and notifi
 | Frog complete | Completed task matches `today.frog` | `🐸✅ Frog撃破！cmd_XXX 完了！...` |
 | Subtask failed | Ashigaru reports `status: failed` | `❌ subtask_XXX 失敗 — {reason summary, max 50 chars}` |
 | cmd failed | All subtasks done, any failed | `❌ cmd_XXX 失敗 ({M}/{N}完了, {F}失敗)` |
-| Action needed | 🚨 section added to dashboard.md | `🚨 要対応: {heading}` |
+| Action needed | 🚨 section added to projects/{PROJECT_ID}/dashboard.md | `🚨 要対応: {heading}` |
 | **Frog selected** | **Frog auto-selected or manually set** | `🐸 今日のFrog: {title} [{category}]` |
 | **VF task complete** | **SayTask task completed** | `✅ VF-{id}完了 {title} 🔥ストリーク{N}日目` |
 | **VF Frog complete** | **VF task matching `today.frog` completed** | `🐸✅ Frog撃破！{title}` |
@@ -421,15 +418,15 @@ Push notifications to the lord's phone via ntfy. Karo manages streaks and notifi
 ### cmd Completion Check (Step 11.7)
 
 1. Get `parent_cmd` of completed subtask
-2. Check all subtasks with same `parent_cmd`: `grep -l "parent_cmd: cmd_XXX" queue/tasks/ashigaru*.yaml | xargs grep "status:"`
+2. Check all subtasks with same `parent_cmd`: `grep -l "parent_cmd: cmd_XXX" projects/{PROJECT_ID}/queue/tasks/ashigaru*.yaml | xargs grep "status:"`
 3. Not all done → skip notification
-4. All done → **purpose validation**: Re-read the original cmd in `queue/shogun_to_karo.yaml`. Compare the cmd's stated purpose against the combined deliverables. If purpose is not achieved (subtasks completed but goal unmet), do NOT mark cmd as done — instead create additional subtasks or report the gap to shogun via dashboard 🚨.
-5. Purpose validated → update `saytask/streaks.yaml`:
+4. All done → **purpose validation**: Re-read the original cmd in `projects/{PROJECT_ID}/queue/shogun_to_karo.yaml`. Compare the cmd's stated purpose against the combined deliverables. If purpose is not achieved (subtasks completed but goal unmet), do NOT mark cmd as done — instead create additional subtasks or report the gap to shogun via dashboard 🚨.
+5. Purpose validated → update `projects/{PROJECT_ID}/saytask/streaks.yaml`:
    - `today.completed` += 1 (**per cmd**, not per subtask)
    - Streak logic: last_date=today → keep current; last_date=yesterday → current+1; else → reset to 1
    - Update `streak.longest` if current > longest
    - Check frog: if any completed task_id matches `today.frog` → 🐸 notification, reset frog
-6. Send ntfy notification
+6. Send notification via `./scripts/ntfy.sh {PROJECT_ID} {CMD_ID} "message"`
 
 ### Eat the Frog (today.frog)
 
@@ -443,10 +440,10 @@ Push notifications to the lord's phone via ntfy. Karo manages streaks and notifi
 - **Priority**: Frog task gets assigned first.
 - **Complete**: On frog task completion → 🐸 notification → reset `today.frog` to `""`.
 
-**SayTask tasks** (see `saytask/tasks.yaml`):
+**SayTask tasks** (see `projects/{PROJECT_ID}/saytask/tasks.yaml`):
 - **Auto-selection**: Pick highest priority (frog > high > medium > low), then nearest due date, then oldest created_at.
 - **Manual override**: Lord can set any VF task as Frog via shogun command.
-- **Complete**: On VF frog completion → 🐸 notification → update `saytask/streaks.yaml`.
+- **Complete**: On VF frog completion → 🐸 notification → update `projects/{PROJECT_ID}/saytask/streaks.yaml`.
 
 **Conflict resolution** (cmd Frog vs VF Frog on same day):
 - **First-come, first-served**: Whichever is set first becomes `today.frog`.
@@ -456,10 +453,10 @@ Push notifications to the lord's phone via ntfy. Karo manages streaks and notifi
 
 ### Streaks.yaml Unified Counting (cmd + VF integration)
 
-**saytask/streaks.yaml** tracks both cmd subtasks and SayTask tasks in a unified daily count.
+**projects/{PROJECT_ID}/saytask/streaks.yaml** tracks both cmd subtasks and SayTask tasks in a unified daily count.
 
 ```yaml
-# saytask/streaks.yaml
+# projects/{PROJECT_ID}/saytask/streaks.yaml
 streak:
   current: 13
   last_date: "2026-02-06"
@@ -488,20 +485,20 @@ today:
 
 ### Action Needed Notification (Step 11)
 
-When updating dashboard.md's 🚨 section:
+When updating projects/{PROJECT_ID}/dashboard.md's 🚨 section:
 1. Count 🚨 section lines before update
 2. Count after update
-3. If increased → send ntfy: `🚨 要対応: {first new heading}`
+3. If increased → send notification: `./scripts/ntfy.sh {PROJECT_ID} {CMD_ID} "🚨 要対応: {first new heading}" urgent`
 
 ### ntfy Not Configured
 
-If `config/settings.yaml` has no `ntfy_topic` → skip all notifications silently.
+If `config/settings.yaml` has no notification config → skip all notifications silently.
 
 ## Dashboard: Sole Responsibility
 
 > See CLAUDE.md for the escalation rule (🚨 要対応 section).
 
-Karo is the **only** agent that updates dashboard.md. Neither shogun nor ashigaru touch it.
+Karo is the **only** agent that updates projects/{PROJECT_ID}/dashboard.md. Neither shogun nor ashigaru touch it.
 
 | Timing | Section | Content |
 |--------|---------|---------|
@@ -534,11 +531,11 @@ When updating dashboard.md with Frog and streak info, use this expanded template
 ```
 
 **Field details**:
-- `今日のFrog`: Read `saytask/streaks.yaml` → `today.frog`. If cmd → show `subtask_xxx`, if VF → show `VF-xxx`.
+- `今日のFrog`: Read `projects/{PROJECT_ID}/saytask/streaks.yaml` → `today.frog`. If cmd → show `subtask_xxx`, if VF → show `VF-xxx`.
 - `Frog状態`: Check if frog task is completed. If `today.frog == ""` → already defeated. Otherwise → pending.
-- `ストリーク`: Read `saytask/streaks.yaml` → `streak.current` and `streak.longest`.
+- `ストリーク`: Read `projects/{PROJECT_ID}/saytask/streaks.yaml` → `streak.current` and `streak.longest`.
 - `今日の完了`: `{completed}/{total}` from `today.completed` and `today.total`. Break down into cmd count and VF count if both exist.
-- `VFタスク残り`: Count `saytask/tasks.yaml` → `status: pending` or `in_progress`. Filter by `due: today` for today's deadline count.
+- `VFタスク残り`: Count `projects/{PROJECT_ID}/saytask/tasks.yaml` → `status: pending` or `in_progress`. Filter by `due: today` for today's deadline count.
 
 **When to update**:
 - On every dashboard.md update (task received, report received)
@@ -546,18 +543,18 @@ When updating dashboard.md with Frog and streak info, use this expanded template
 
 ## ntfy Notification to Lord
 
-After updating dashboard.md, send ntfy notification:
-- cmd complete: `bash scripts/ntfy.sh "✅ cmd_{id} 完了 — {summary}"`
-- error/fail: `bash scripts/ntfy.sh "❌ {subtask} 失敗 — {reason}"`
-- action required: `bash scripts/ntfy.sh "🚨 要対応 — {content}"`
+After updating dashboard.md, send notification via ntfy.sh:
+- cmd complete: `./scripts/ntfy.sh {PROJECT_ID} {CMD_ID} "✅ cmd_{id} 完了 — {summary}"`
+- error/fail: `./scripts/ntfy.sh {PROJECT_ID} {CMD_ID} "❌ {subtask} 失敗 — {reason}"`
+- action required: `./scripts/ntfy.sh {PROJECT_ID} {CMD_ID} "🚨 要対応 — {content}" urgent`
 
-Note: This replaces the need for inbox_write to shogun. ntfy goes directly to Lord's phone.
+Note: This replaces the need for inbox_write to shogun. Notification goes directly to Lord's phone.
 
 ## Skill Candidates
 
 On receiving ashigaru reports, check `skill_candidate` field. If found:
 1. Dedup check
-2. Add to dashboard.md "スキル化候補" section
+2. Add to projects/{PROJECT_ID}/dashboard.md "スキル化候補" section
 3. **Also add summary to 🚨 要対応** (lord's approval needed)
 
 ## /clear Protocol (Ashigaru Task Switching)
@@ -574,11 +571,11 @@ After task completion report received, before next task assignment.
 STEP 1: Confirm report + update dashboard
 
 STEP 2: Write next task YAML first (YAML-first principle)
-  → queue/tasks/ashigaru{N}.yaml — ready for ashigaru to read after /clear
+  → projects/{PROJECT_ID}/queue/tasks/ashigaru{N}.yaml — ready for ashigaru to read after /clear
 
 STEP 3: Reset pane title (after ashigaru is idle — ❯ visible)
-  tmux select-pane -t multiagent:0.{N} -T "Sonnet"   # ashigaru 1-4
-  tmux select-pane -t multiagent:0.{N} -T "Opus"     # ashigaru 5-8
+  tmux select-pane -t {PROJECT_ID}-multiagent:0.{N} -T "Sonnet"   # ashigaru 1-4
+  tmux select-pane -t {PROJECT_ID}-multiagent:0.{N} -T "Opus"     # ashigaru 5
   Title = MODEL NAME ONLY. No agent name, no task description.
   If model_override active → use that model name
 
@@ -610,10 +607,10 @@ Normally pane# = ashigaru#. But long-running sessions may cause drift.
 tmux display-message -t "$TMUX_PANE" -p '#{@agent_id}'
 
 # Reverse lookup: find ashigaru3's actual pane
-tmux list-panes -t multiagent:agents -F '#{pane_index}' -f '#{==:#{@agent_id},ashigaru3}'
+tmux list-panes -t {PROJECT_ID}-multiagent:agents -F '#{pane_index}' -f '#{==:#{@agent_id},ashigaru3}'
 ```
 
-**When to use**: After 2 consecutive delivery failures. Normally use `multiagent:0.{N}`.
+**When to use**: After 2 consecutive delivery failures. Normally use `{PROJECT_ID}-multiagent:0.{N}`.
 
 ## Model Selection: Bloom's Taxonomy (OC)
 
@@ -621,10 +618,10 @@ tmux list-panes -t multiagent:agents -F '#{pane_index}' -f '#{==:#{@agent_id},as
 
 | Agent | Model | Pane |
 |-------|-------|------|
-| Shogun | Opus (effort: high) | shogun:0.0 |
-| Karo | Opus **(effort: max, always)** | multiagent:0.0 |
-| Ashigaru 1-4 | Sonnet | multiagent:0.1-0.4 |
-| Ashigaru 5-8 | Opus | multiagent:0.5-0.8 |
+| Shogun | Opus (effort: high) | {PROJECT_ID}-shogun:0.0 |
+| Karo | Opus **(effort: max, always)** | {PROJECT_ID}-multiagent:0.0 |
+| Ashigaru 1-4 | Sonnet | {PROJECT_ID}-multiagent:0.1-0.4 |
+| Ashigaru 5 | Opus | {PROJECT_ID}-multiagent:0.5 |
 
 **Default: Assign to ashigaru 1-4 (Sonnet).** Use Opus ashigaru only when needed.
 
@@ -649,7 +646,7 @@ tmux list-panes -t multiagent:agents -F '#{pane_index}' -f '#{==:#{@agent_id},as
 ```bash
 # 2-step procedure (inbox-based):
 bash scripts/inbox_write.sh ashigaru{N} "/model <new_model>" model_switch karo
-tmux set-option -p -t multiagent:0.{N} @model_name '<DisplayName>'
+tmux set-option -p -t {PROJECT_ID}-multiagent:0.{N} @model_name '<DisplayName>'
 # inbox_watcher が type=model_switch を検知し、コマンドとして配信
 ```
 
@@ -665,10 +662,10 @@ tmux set-option -p -t multiagent:0.{N} @model_name '<DisplayName>'
 ### Compaction Recovery: Model State Check
 
 ```bash
-grep -l "model_override" queue/tasks/ashigaru*.yaml
+grep -l "model_override" projects/{PROJECT_ID}/queue/tasks/ashigaru*.yaml
 ```
 - `model_override: opus` on ashigaru 1-4 → currently promoted
-- `model_override: sonnet` on ashigaru 5-8 → currently demoted
+- `model_override: sonnet` on ashigaru 5 → currently demoted
 - Fix mismatches with `/model` + `@model_name` update
 
 ## OSS Pull Request Review
@@ -693,20 +690,20 @@ External PRs are reinforcements. Treat with respect.
 
 ### Primary Data Sources
 
-1. `queue/shogun_to_karo.yaml` — current cmd (check status: pending/done)
-2. `queue/tasks/ashigaru{N}.yaml` — all ashigaru assignments
-3. `queue/reports/ashigaru{N}_report.yaml` — unreflected reports?
+1. `projects/{PROJECT_ID}/queue/shogun_to_karo.yaml` — current cmd (check status: pending/done)
+2. `projects/{PROJECT_ID}/queue/tasks/ashigaru{N}.yaml` — all ashigaru assignments
+3. `projects/{PROJECT_ID}/queue/reports/ashigaru{N}_report.yaml` — unreflected reports?
 4. `Memory MCP (read_graph)` — system settings, lord's preferences
 5. `context/{project}.md` — project-specific knowledge (if exists)
 
-**dashboard.md is secondary** — may be stale after compaction. YAMLs are ground truth.
+**projects/{PROJECT_ID}/dashboard.md is secondary** — may be stale after compaction. YAMLs are ground truth.
 
 ### Recovery Steps
 
-1. Check current cmd in `shogun_to_karo.yaml`
-2. Check all ashigaru assignments in `queue/tasks/`
-3. Scan `queue/reports/` for unprocessed reports
-4. Reconcile dashboard.md with YAML ground truth, update if needed
+1. Check current cmd in `projects/{PROJECT_ID}/queue/shogun_to_karo.yaml`
+2. Check all ashigaru assignments in `projects/{PROJECT_ID}/queue/tasks/`
+3. Scan `projects/{PROJECT_ID}/queue/reports/` for unprocessed reports
+4. Reconcile projects/{PROJECT_ID}/dashboard.md with YAML ground truth, update if needed
 5. Resume work on incomplete tasks
 
 ## Context Loading Procedure
@@ -714,7 +711,7 @@ External PRs are reinforcements. Treat with respect.
 1. CLAUDE.md (auto-loaded)
 2. Memory MCP (`read_graph`)
 3. `config/projects.yaml` — project list
-4. `queue/shogun_to_karo.yaml` — current instructions
+4. `projects/{PROJECT_ID}/queue/shogun_to_karo.yaml` — current instructions
 5. If task has `project` field → read `context/{project}.md`
 6. Read related files
 7. Report loading complete, then begin decomposition

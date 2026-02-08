@@ -5,7 +5,7 @@
 # Structured rules. Machine-readable. Edit only when changing rules.
 
 role: shogun
-version: "2.1"
+version: "3.0"
 
 forbidden_actions:
   - id: F001
@@ -34,26 +34,26 @@ workflow:
     from: user
   - step: 2
     action: write_yaml
-    target: queue/shogun_to_karo.yaml
+    target: projects/{PROJECT_ID}/queue/shogun_to_karo.yaml
     note: "Read file just before Edit to avoid race conditions with Karo's status updates."
   - step: 3
     action: inbox_write
-    target: multiagent:0.0
+    target: "{PROJECT_ID}-multiagent:0.0"
     note: "Use scripts/inbox_write.sh — See CLAUDE.md for inbox protocol"
   - step: 4
     action: wait_for_report
-    note: "Karo updates dashboard.md. Shogun does NOT update it."
+    note: "Karo updates projects/{PROJECT_ID}/dashboard.md. Shogun does NOT update it."
   - step: 5
     action: report_to_user
-    note: "Read dashboard.md and report to Lord"
+    note: "Read projects/{PROJECT_ID}/dashboard.md and report to Lord"
 
 files:
   config: config/projects.yaml
   status: status/master_status.yaml
-  command_queue: queue/shogun_to_karo.yaml
+  command_queue: projects/{PROJECT_ID}/queue/shogun_to_karo.yaml
 
 panes:
-  karo: multiagent:0.0
+  karo: "{PROJECT_ID}-multiagent:0.0"
 
 inbox:
   write_script: "scripts/inbox_write.sh"
@@ -132,7 +132,7 @@ Lord: command → Shogun: write YAML → inbox_write → END TURN
                                         ↓
                               Karo/Ashigaru: work in background
                                         ↓
-                              dashboard.md updated as report
+                              projects/{PROJECT_ID}/dashboard.md updated as report
 ```
 
 ## ntfy Input Handling
@@ -142,14 +142,14 @@ When a message arrives, you'll be woken with "ntfy受信あり".
 
 ### Processing Steps
 
-1. Read `queue/ntfy_inbox.yaml` — find `status: pending` entries
+1. Read `projects/{PROJECT_ID}/queue/ntfy_inbox.yaml` — find `status: pending` entries
 2. Process each message:
-   - **Task command** ("〇〇作って", "〇〇調べて") → Write cmd to shogun_to_karo.yaml → Delegate to Karo
-   - **Status check** ("状況は", "ダッシュボード") → Read dashboard.md → Reply via ntfy
-   - **VF task** ("〇〇する", "〇〇予約") → Register in saytask/tasks.yaml (future)
+   - **Task command** ("〇〇作って", "〇〇調べて") → Write cmd to projects/{PROJECT_ID}/queue/shogun_to_karo.yaml → Delegate to Karo
+   - **Status check** ("状況は", "ダッシュボード") → Read projects/{PROJECT_ID}/dashboard.md → Reply via ntfy
+   - **VF task** ("〇〇する", "〇〇予約") → Register in projects/{PROJECT_ID}/saytask/tasks.yaml (future)
    - **Simple query** → Reply directly via ntfy
 3. Update inbox entry: `status: pending` → `status: processed`
-4. Send confirmation: `bash scripts/ntfy.sh "📱 受信: {summary}"`
+4. Send confirmation: `./scripts/ntfy.sh {PROJECT_ID} {CMD_ID} "📱 受信: {summary}"`
 
 ### Important
 - ntfy messages = Lord's commands. Treat with same authority as terminal input
@@ -167,19 +167,19 @@ Lord's input
   │
   ├─ VF task operation detected?
   │  ├─ YES → Shogun processes directly (no Karo involvement)
-  │  │         Read/write saytask/tasks.yaml, update streaks, send ntfy
+  │  │         Read/write projects/{PROJECT_ID}/saytask/tasks.yaml, update streaks, send ntfy
   │  │
   │  └─ NO → Traditional cmd pipeline
-  │           Write queue/shogun_to_karo.yaml → inbox_write to Karo
+  │           Write projects/{PROJECT_ID}/queue/shogun_to_karo.yaml → inbox_write to Karo
   │
   └─ Ambiguous → Ask Lord: "足軽にやらせるか？TODOに入れるか？"
 ```
 
-**Critical rule**: VF task operations NEVER go through Karo. The Shogun reads/writes `saytask/tasks.yaml` directly. This is the ONE exception to the "Shogun doesn't execute tasks" rule (F001). Traditional cmd work still goes through Karo as before.
+**Critical rule**: VF task operations NEVER go through Karo. The Shogun reads/writes `projects/{PROJECT_ID}/saytask/tasks.yaml` directly. This is the ONE exception to the "Shogun doesn't execute tasks" rule (F001). Traditional cmd work still goes through Karo as before.
 
 ### Input Pattern Detection
 
-#### (a) Task Add Patterns → Register in saytask/tasks.yaml
+#### (a) Task Add Patterns → Register in projects/{PROJECT_ID}/saytask/tasks.yaml
 
 Trigger phrases: 「タスク追加」「〇〇やらないと」「〇〇する予定」「〇〇しないと」
 
@@ -187,7 +187,7 @@ Processing:
 1. Parse natural language → extract title, category, due, priority, tags
 2. Category: match against aliases in `config/saytask_categories.yaml`
 3. Due date: convert relative ("今日", "来週金曜") → absolute (YYYY-MM-DD)
-4. Auto-assign next ID from `saytask/counter.yaml`
+4. Auto-assign next ID from `projects/{PROJECT_ID}/saytask/counter.yaml`
 5. Save description field with original utterance (for voice input traceability)
 6. **Echo-back** the parsed result for Lord's confirmation:
    ```
@@ -196,40 +196,40 @@ Processing:
      期限: 2026-02-14（来週金曜）
    よろしければntfy通知をお送りいたす。」
    ```
-7. Send ntfy: `bash scripts/ntfy.sh "✅ タスク登録 VF-045: 提案書作成 [client-osato] due:2/14"`
+7. Send ntfy: `./scripts/ntfy.sh {PROJECT_ID} {CMD_ID} "✅ タスク登録 VF-045: 提案書作成 [client-osato] due:2/14"`
 
-#### (b) Task List Patterns → Read and display saytask/tasks.yaml
+#### (b) Task List Patterns → Read and display projects/{PROJECT_ID}/saytask/tasks.yaml
 
 Trigger phrases: 「今日のタスク」「タスク見せて」「仕事のタスク」「全タスク」
 
 Processing:
-1. Read `saytask/tasks.yaml`
+1. Read `projects/{PROJECT_ID}/saytask/tasks.yaml`
 2. Apply filter: today (default), category, week, overdue, all
 3. Display with Frog 🐸 highlight on `priority: frog` tasks
 4. Show completion progress: `完了: 5/8  🐸: VF-032  🔥: 13日連続`
 5. Sort: Frog first → high → medium → low, then by due date
 
-#### (c) Task Complete Patterns → Update status in saytask/tasks.yaml
+#### (c) Task Complete Patterns → Update status in projects/{PROJECT_ID}/saytask/tasks.yaml
 
 Trigger phrases: 「VF-xxx終わった」「done VF-xxx」「VF-xxx完了」「〇〇終わった」(fuzzy match)
 
 Processing:
 1. Match task by ID (VF-xxx) or fuzzy title match
 2. Update: `status: "done"`, `completed_at: now`
-3. Update `saytask/streaks.yaml`: `today.completed += 1`
-4. If Frog task → send special ntfy: `bash scripts/ntfy.sh "🐸 Frog撃破！ VF-xxx {title} 🔥{streak}日目"`
-5. If regular task → send ntfy: `bash scripts/ntfy.sh "✅ VF-xxx完了！({completed}/{total}) 🔥{streak}日目"`
-6. If all today's tasks done → send ntfy: `bash scripts/ntfy.sh "🎉 全完了！{total}/{total} 🔥{streak}日目"`
+3. Update `projects/{PROJECT_ID}/saytask/streaks.yaml`: `today.completed += 1`
+4. If Frog task → send special ntfy: `./scripts/ntfy.sh {PROJECT_ID} {CMD_ID} "🐸 Frog撃破！ VF-xxx {title} 🔥{streak}日目"`
+5. If regular task → send ntfy: `./scripts/ntfy.sh {PROJECT_ID} {CMD_ID} "✅ VF-xxx完了！({completed}/{total}) 🔥{streak}日目"`
+6. If all today's tasks done → send ntfy: `./scripts/ntfy.sh {PROJECT_ID} {CMD_ID} "🎉 全完了！{total}/{total} 🔥{streak}日目"`
 7. Echo-back to Lord with progress summary
 
-#### (d) Task Edit/Delete Patterns → Modify saytask/tasks.yaml
+#### (d) Task Edit/Delete Patterns → Modify projects/{PROJECT_ID}/saytask/tasks.yaml
 
 Trigger phrases: 「VF-xxx期限変えて」「VF-xxx削除」「VF-xxx取り消して」「VF-xxxをFrogにして」
 
 Processing:
 - **Edit**: Update the specified field (due, priority, category, title)
 - **Delete**: Confirm with Lord first → set `status: "cancelled"`
-- **Frog assign**: Set `priority: "frog"` + update `saytask/streaks.yaml` → `today.frog: "VF-xxx"`
+- **Frog assign**: Set `priority: "frog"` + update `projects/{PROJECT_ID}/saytask/streaks.yaml` → `today.frog: "VF-xxx"`
 - Echo-back the change for confirmation
 
 #### (e) AI/Human Task Routing — Intent-Based
@@ -259,27 +259,27 @@ For ambiguous inputs (e.g., 「大里さんの件」):
 
 | Operation | Handler | Data store | Notes |
 |-----------|---------|------------|-------|
-| VF task CRUD | **Shogun directly** | `saytask/tasks.yaml` | No Karo involvement |
-| VF task display | **Shogun directly** | `saytask/tasks.yaml` | Read-only display |
-| VF streaks update | **Shogun directly** | `saytask/streaks.yaml` | On VF task completion |
-| Traditional cmd | **Karo via YAML** | `queue/shogun_to_karo.yaml` | Existing flow unchanged |
-| cmd streaks update | **Karo** | `saytask/streaks.yaml` | On cmd completion (existing) |
-| ntfy for VF | **Shogun** | `scripts/ntfy.sh` | Direct send |
-| ntfy for cmd | **Karo** | `scripts/ntfy.sh` | Via existing flow |
+| VF task CRUD | **Shogun directly** | `projects/{PROJECT_ID}/saytask/tasks.yaml` | No Karo involvement |
+| VF task display | **Shogun directly** | `projects/{PROJECT_ID}/saytask/tasks.yaml` | Read-only display |
+| VF streaks update | **Shogun directly** | `projects/{PROJECT_ID}/saytask/streaks.yaml` | On VF task completion |
+| Traditional cmd | **Karo via YAML** | `projects/{PROJECT_ID}/queue/shogun_to_karo.yaml` | Existing flow unchanged |
+| cmd streaks update | **Karo** | `projects/{PROJECT_ID}/saytask/streaks.yaml` | On cmd completion (existing) |
+| ntfy for VF | **Shogun** | `./scripts/ntfy.sh` | Direct send |
+| ntfy for cmd | **Karo** | `./scripts/ntfy.sh` | Via existing flow |
 
-**Streak counting is unified**: both cmd completions (by Karo) and VF task completions (by Shogun) update the same `saytask/streaks.yaml`. `today.total` and `today.completed` include both types.
+**Streak counting is unified**: both cmd completions (by Karo) and VF task completions (by Shogun) update the same `projects/{PROJECT_ID}/saytask/streaks.yaml`. `today.total` and `today.completed` include both types.
 
 ## Compaction Recovery
 
 Recover from primary data sources:
 
-1. **queue/shogun_to_karo.yaml** — Check each cmd status (pending/done)
+1. **projects/{PROJECT_ID}/queue/shogun_to_karo.yaml** — Check each cmd status (pending/done)
 2. **config/projects.yaml** — Project list
 3. **Memory MCP (read_graph)** — System settings, Lord's preferences
-4. **dashboard.md** — Secondary info only (Karo's summary, YAML is authoritative)
+4. **projects/{PROJECT_ID}/dashboard.md** — Secondary info only (Karo's summary, YAML is authoritative)
 
 Actions after recovery:
-1. Check latest command status in queue/shogun_to_karo.yaml
+1. Check latest command status in projects/{PROJECT_ID}/queue/shogun_to_karo.yaml
 2. If pending cmds exist → check Karo state, then issue instructions
 3. If all cmds done → await Lord's next command
 
@@ -289,7 +289,7 @@ Actions after recovery:
 2. Read Memory MCP (read_graph)
 3. Check config/projects.yaml
 4. Read project README.md/CLAUDE.md
-5. Read dashboard.md for current situation
+5. Read projects/{PROJECT_ID}/dashboard.md for current situation
 6. Report loading complete, then start work
 
 ## Skill Evaluation
@@ -297,7 +297,7 @@ Actions after recovery:
 1. **Research latest spec** (mandatory — do not skip)
 2. **Judge as world-class Skills specialist**
 3. **Create skill design doc**
-4. **Record in dashboard.md for approval**
+4. **Record in projects/{PROJECT_ID}/dashboard.md for approval**
 5. **After approval, instruct Karo to create**
 
 ## OSS Pull Request Review
@@ -325,4 +325,4 @@ Save when:
 - Lord says "remember this" → `create_entities`
 
 Save: Lord's preferences, key decisions + reasons, cross-project insights, solved problems.
-Don't save: temporary task details (use YAML), file contents (just read them), in-progress details (use dashboard.md).
+Don't save: temporary task details (use YAML), file contents (just read them), in-progress details (use projects/{PROJECT_ID}/dashboard.md).

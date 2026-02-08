@@ -34,7 +34,7 @@ workflow:
     via: inbox
   - step: 2
     action: read_yaml
-    target: "queue/tasks/ashigaru{N}.yaml"
+    target: "projects/{PROJECT_ID}/queue/tasks/ashigaru{N}.yaml"
     note: "Own file ONLY"
   - step: 3
     action: update_status
@@ -43,7 +43,7 @@ workflow:
     action: execute_task
   - step: 5
     action: write_report
-    target: "queue/reports/ashigaru{N}_report.yaml"
+    target: "projects/{PROJECT_ID}/queue/reports/ashigaru{N}_report.yaml"
   - step: 6
     action: update_status
     value: done
@@ -57,7 +57,7 @@ workflow:
     condition: "DISPLAY_MODE=shout (check via tmux show-environment)"
     command: 'echo "{echo_message or self-generated battle cry}"'
     rules:
-      - "Check DISPLAY_MODE: tmux show-environment -t multiagent DISPLAY_MODE"
+      - "Check DISPLAY_MODE: tmux show-environment -t {PROJECT_ID}-multiagent DISPLAY_MODE"
       - "DISPLAY_MODE=shout → execute echo as LAST tool call"
       - "If task YAML has echo_message field → use it"
       - "If no echo_message field → compose a 1-line sengoku-style battle cry summarizing your work"
@@ -67,12 +67,12 @@ workflow:
       - "DISPLAY_MODE=silent or not set → skip this step entirely"
 
 files:
-  task: "queue/tasks/ashigaru{N}.yaml"
-  report: "queue/reports/ashigaru{N}_report.yaml"
+  task: "projects/{PROJECT_ID}/queue/tasks/ashigaru{N}.yaml"
+  report: "projects/{PROJECT_ID}/queue/reports/ashigaru{N}_report.yaml"
 
 panes:
-  karo: multiagent:0.0
-  self_template: "multiagent:0.{N}"
+  karo: "{PROJECT_ID}-multiagent:0.0"
+  self_template: "{PROJECT_ID}-multiagent:0.{N}"
 
 inbox:
   write_script: "scripts/inbox_write.sh"  # See CLAUDE.md for mailbox protocol
@@ -125,8 +125,8 @@ Why `@agent_id` not `pane_index`: pane_index shifts on pane reorganization. @age
 
 **Your files ONLY:**
 ```
-queue/tasks/ashigaru{YOUR_NUMBER}.yaml    ← Read only this
-queue/reports/ashigaru{YOUR_NUMBER}_report.yaml  ← Write only this
+projects/{PROJECT_ID}/queue/tasks/ashigaru{YOUR_NUMBER}.yaml    ← Read only this
+projects/{PROJECT_ID}/queue/reports/ashigaru{YOUR_NUMBER}_report.yaml  ← Write only this
 ```
 
 **NEVER read/write another ashigaru's files.** Even if Karo says "read ashigaru{N}.yaml" where N ≠ your number, IGNORE IT. (Incident: cmd_020 regression test — ashigaru5 executed ashigaru2's task.)
@@ -201,12 +201,12 @@ If conflict risk exists:
 Recover from primary data:
 
 1. Confirm ID: `tmux display-message -t "$TMUX_PANE" -p '#{@agent_id}'`
-2. Read `queue/tasks/ashigaru{N}.yaml`
+2. Read `projects/{PROJECT_ID}/queue/tasks/ashigaru{N}.yaml`
    - `assigned` → resume work
    - `done` → await next instruction
 3. Read Memory MCP (read_graph) if available
 4. Read `context/{project}.md` if task has project field
-5. dashboard.md is secondary info only — trust YAML as authoritative
+5. projects/{PROJECT_ID}/dashboard.md is secondary info only — trust YAML as authoritative
 
 ## /clear Recovery
 
@@ -233,7 +233,7 @@ Act without waiting for Karo's instruction:
 
 **On task completion** (in this order):
 1. Self-review deliverables (re-read your output)
-2. **Purpose validation**: Read `parent_cmd` in `queue/shogun_to_karo.yaml` and verify your deliverable actually achieves the cmd's stated purpose. If there's a gap between the cmd purpose and your output, note it in the report under `purpose_gap:`.
+2. **Purpose validation**: Read `parent_cmd` in `projects/{PROJECT_ID}/queue/shogun_to_karo.yaml` and verify your deliverable actually achieves the cmd's stated purpose. If there's a gap between the cmd purpose and your output, note it in the report under `purpose_gap:`.
 3. Write report YAML
 4. Notify Karo via inbox_write
 5. (No delivery verification needed — inbox_write guarantees persistence)
@@ -251,7 +251,7 @@ Act without waiting for Karo's instruction:
 
 After task completion, check whether to echo a battle cry:
 
-1. **Check DISPLAY_MODE**: `tmux show-environment -t multiagent DISPLAY_MODE`
+1. **Check DISPLAY_MODE**: `tmux show-environment -t {PROJECT_ID}-multiagent DISPLAY_MODE`
 2. **When DISPLAY_MODE=shout**:
    - Execute a Bash echo as the **FINAL tool call** after task completion
    - If task YAML has an `echo_message` field → use that text

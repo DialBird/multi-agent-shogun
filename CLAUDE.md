@@ -4,22 +4,25 @@ version: "3.0"
 updated: "2026-02-07"
 description: "Claude Code + tmux multi-agent parallel dev platform with sengoku military hierarchy"
 
-hierarchy: "Lord (human) → Shogun → Karo → Ashigaru 1-8"
+hierarchy: "Lord (human) → Shogun → Karo → Ashigaru 1-5"
 communication: "YAML files + inbox mailbox system (event-driven, NO polling)"
 
 tmux_sessions:
-  shogun: { pane_0: shogun }
-  multiagent: { pane_0: karo, pane_1-8: ashigaru1-8 }
+  "{PROJECT_ID}-shogun": { pane_0: shogun }
+  "{PROJECT_ID}-multiagent": { pane_0: karo, pane_1-5: ashigaru1-5 }
 
 files:
   config: config/projects.yaml          # Project list (summary)
   projects: "projects/<id>.yaml"        # Project details (git-ignored, contains secrets)
+  project_config: "projects/{PROJECT_ID}/config.yaml"  # Project configuration
+  project_status: "projects/{PROJECT_ID}/status.md"    # Project progress
   context: "context/{project}.md"       # Project-specific notes for ashigaru
-  cmd_queue: queue/shogun_to_karo.yaml  # Shogun → Karo commands
-  tasks: "queue/tasks/ashigaru{N}.yaml" # Karo → Ashigaru assignments (per-ashigaru)
-  reports: "queue/reports/ashigaru{N}_report.yaml" # Ashigaru → Karo reports
-  dashboard: dashboard.md              # Human-readable summary (secondary data)
-  ntfy_inbox: queue/ntfy_inbox.yaml    # Incoming ntfy messages from Lord's phone
+  cmd_queue: "projects/{PROJECT_ID}/queue/shogun_to_karo.yaml"  # Shogun → Karo commands
+  tasks: "projects/{PROJECT_ID}/queue/tasks/ashigaru{N}.yaml" # Karo → Ashigaru assignments (per-ashigaru)
+  reports: "projects/{PROJECT_ID}/queue/reports/ashigaru{N}_report.yaml" # Ashigaru → Karo reports
+  inbox: "projects/{PROJECT_ID}/queue/inbox/{agent}.yaml"  # Agent mailbox
+  dashboard: "projects/{PROJECT_ID}/dashboard.md"  # Human-readable summary (secondary data)
+  ntfy_inbox: "projects/{PROJECT_ID}/queue/ntfy_inbox.yaml"  # Incoming ntfy messages from Lord's phone
 
 cmd_format:
   required_fields: [id, timestamp, purpose, acceptance_criteria, command, project, priority, status]
@@ -51,7 +54,7 @@ language:
 1. Identify self: `tmux display-message -t "$TMUX_PANE" -p '#{@agent_id}'`
 2. `mcp__memory__read_graph` — restore rules, preferences, lessons
 3. **Read your instructions file**: shogun→`instructions/shogun.md`, karo→`instructions/karo.md`, ashigaru→`instructions/ashigaru.md`. **NEVER SKIP** — even if a conversation summary exists. Summaries do NOT preserve persona, speech style, or forbidden actions.
-4. Rebuild state from primary YAML data (queue/, tasks/, reports/)
+4. Rebuild state from primary YAML data (projects/{PROJECT_ID}/queue/, tasks/, reports/)
 5. Review forbidden actions, then start work
 
 **CRITICAL**: dashboard.md is secondary data (karo's summary). Primary data = YAML files. Always verify from YAML.
@@ -63,7 +66,7 @@ Lightweight recovery using only CLAUDE.md (auto-loaded). Do NOT read instruction
 ```
 Step 1: tmux display-message -t "$TMUX_PANE" -p '#{@agent_id}' → ashigaru{N}
 Step 2: mcp__memory__read_graph (skip on failure — task exec still possible)
-Step 3: Read queue/tasks/ashigaru{N}.yaml → assigned=work, idle=wait
+Step 3: Read projects/{PROJECT_ID}/queue/tasks/ashigaru{N}.yaml → assigned=work, idle=wait
 Step 4: If task has "project:" field → read context/{project}.md
         If task has "target_path:" → read that file
 Step 5: Start work
@@ -103,7 +106,7 @@ Delivery is handled by `inbox_watcher.sh` (infrastructure layer).
 ## Delivery Mechanism
 
 Two layers:
-1. **Message persistence**: `inbox_write.sh` writes to `queue/inbox/{agent}.yaml` with flock. Guaranteed.
+1. **Message persistence**: `inbox_write.sh` writes to `projects/{PROJECT_ID}/queue/inbox/{agent}.yaml` with flock. Guaranteed.
 2. **Wake-up signal**: `inbox_watcher.sh` detects file change via `inotifywait` → sends SHORT nudge via send-keys (timeout 5s)
 
 The nudge is minimal: `inboxN` (e.g. `inbox3` = 3 unread). That's it.
@@ -116,7 +119,7 @@ Special cases (CLI commands sent directly via send-keys):
 ## Inbox Processing Protocol (karo/ashigaru)
 
 When you receive `inboxN` (e.g. `inbox3`):
-1. `Read queue/inbox/{your_id}.yaml`
+1. `Read projects/{PROJECT_ID}/queue/inbox/{your_id}.yaml`
 2. Find all entries with `read: false`
 3. Process each message according to its `type`
 4. Update each processed entry: `read: true` (use Edit tool)
@@ -142,7 +145,7 @@ This is a safety net — even if the wake-up nudge was missed, messages are stil
 ```
 Layer 1: Memory MCP     — persistent across sessions (preferences, rules, lessons)
 Layer 2: Project files   — persistent per-project (config/, projects/, context/)
-Layer 3: YAML Queue      — persistent task data (queue/ — authoritative source of truth)
+Layer 3: YAML Queue      — persistent task data (projects/{PROJECT_ID}/queue/ — authoritative source of truth)
 Layer 4: Session context — volatile (CLAUDE.md auto-loaded, instructions/*.md, lost on /clear)
 ```
 
@@ -154,8 +157,8 @@ System manages ALL white-collar work, not just self-improvement. Project folders
 
 1. **Dashboard**: Karo's responsibility. Shogun reads it, never writes it.
 2. **Chain of command**: Shogun → Karo → Ashigaru. Never bypass Karo.
-3. **Reports**: Check `queue/reports/ashigaru{N}_report.yaml` when waiting.
-4. **Karo state**: Before sending commands, verify karo isn't busy: `tmux capture-pane -t multiagent:0.0 -p | tail -20`
+3. **Reports**: Check `projects/{PROJECT_ID}/queue/reports/ashigaru{N}_report.yaml` when waiting.
+4. **Karo state**: Before sending commands, verify karo isn't busy: `tmux capture-pane -t {PROJECT_ID}-multiagent:0.0 -p | tail -20`
 5. **Screenshots**: See `config/settings.yaml` → `screenshot.path`
 6. **Skill candidates**: Ashigaru reports include `skill_candidate:`. Karo collects → dashboard. Shogun approves → creates design doc.
 7. **Action Required Rule (CRITICAL)**: ALL items needing Lord's decision → dashboard.md 🚨要対応 section. ALWAYS. Even if also written elsewhere. Forgetting = Lord gets angry.

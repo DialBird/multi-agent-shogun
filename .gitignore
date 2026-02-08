@@ -29,6 +29,7 @@
 
 # Startup script
 !shutsujin_departure.sh
+!iza.sh
 
 # Templates
 !templates/
